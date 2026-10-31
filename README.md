@@ -6,7 +6,7 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
 
 ## Features
 
-- **Live TV**: 32 channels in rows (МРТ, National, News, Albanian-language, Regional, Music…). A hero panel shows the focused channel.
+- **Live TV**: 24 channels in rows (МРТ, National, Albanian-language, Regional, Music…). A hero panel shows the focused channel.
 - **Catch-up**:
   - **MRT archive in the app**: browse sections (News, Sport, MRT Production, Documentary, 50 Years of MRT, Promo), then shows, then episodes, with infinite scroll. The archive plays worldwide.
   - **Private stations**: their official YouTube channels, opened in the YouTube app.
@@ -31,7 +31,7 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
    - **adb**: turn on developer mode and network debugging, then run `adb connect <tv-ip>` and `adb install mk-tv-<version>.apk`.
 3. МК ТВ appears in the TV's app row.
 
-**VPN:** MRT 1–5, Alsat, 24 Vesti, MTM, Era, Šutel and M-Net only play from Macedonian IP addresses. Run a VPN app on the TV, set to **North Macedonia**, for those channels. Everything else plays worldwide.
+**VPN:** MRT 1–5 only play from Macedonian IP addresses. Run a VPN app on the TV, set to **North Macedonia**, for those channels. Everything else plays worldwide.
 
 ## Channels
 
@@ -41,17 +41,21 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
 | МРТ 1 САТ, МРТ 2 САТ, Собраниски канал | МРТ | Worldwide | MRT archive (in app) |
 | Сител, Канал 5, Наша ТВ | National | Worldwide | YouTube |
 | Телма, Алфа, Клан Македонија | National | — (no public stream) | YouTube |
-| 24 Вести | News | MK only (VPN) | YouTube |
+| 24 Вести, Alsat, М-Нет HD | — | — (subscriber-only stream) | YouTube |
 | ТВ21, TV Shenja, TV Koha | Albanian-language | Worldwide | YouTube |
-| Alsat, TV Era | Albanian-language | MK only (VPN) | YouTube (Alsat) |
 | Канал 8, ТВ Нова 12, ТВ Здравкин | Regional | Worldwide | YouTube |
-| МТМ, Шутел, М-Нет HD | Regional | MK only (VPN) | YouTube (M-Net) |
 | Folk TV, Love TV, Sky Folk, TopEstrada, Фолк Клуб | Music | Worldwide | YouTube (some) |
 | Cool TV, ИНТВ Австралија | Other | Worldwide | YouTube (INTV) |
-| М-Нет Kids, М-Нет Sport | Other | MK only (VPN) | — |
 | Македонско радио 1 · 2 · 3 · САТ | Radio | Worldwide | — |
 
-Every "Worldwide" stream was checked on 30 Oct 2026 by downloading a real video segment. "MK only" streams answered with a block or no connection from outside Macedonia. Sitel and Kanal 5 come from teve.mk, a public restream listed by iptv-org, because neither station publishes its own live player.
+The app covers **all 12 live channels on MRT Play** (MRT 1–5, MRT 1 SAT, MRT 2 SAT, the Assembly channel and 4 radio stations).
+
+**Verification (30 Oct 2026):**
+- **Worldwide** streams were checked from the US down to an actual video segment.
+- **MRT 1–5** were checked from probes inside North Macedonia (Skopje, via [Globalping](https://globalping.io)). The master playlist and live segment lists returned 200, so they play with a VPN set to North Macedonia.
+- **Removed:** the streams for 24 Вести, Alsat, TV Era, МТМ, Шутел and M-Net. They failed from three Macedonian ISPs, because they only work for the operator's own subscribers. Their YouTube catch-up stays.
+
+Sitel and Kanal 5 come from teve.mk, a public restream listed by iptv-org, because neither station publishes its own live player.
 
 ## How it works
 

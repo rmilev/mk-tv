@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "channels": [
     {
       "id": "mrt1",
@@ -169,13 +169,12 @@
       "nameLatin": "TV 24 (24 Vesti)",
       "group": "Вести",
       "logo": "https://i.imgur.com/o5n40jq.png",
-      "type": "url",
-      "url": "https://hls.telekabel.com.mk:1936/live/1/hls.m3u8",
-      "mkOnly": true,
+      "type": "none",
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCfKAthZAIoDXQ_RzBb6reNg"
-      }
+      },
+      "live": false
     },
     {
       "id": "alsat",
@@ -183,13 +182,12 @@
       "nameLatin": "Alsat (Alsat-M)",
       "group": "На албански",
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Logo_of_Alsat_TV_%282020-%29.svg/960px-Logo_of_Alsat_TV_%282020-%29.svg.png",
-      "type": "url",
-      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(Alsat_M)/index.m3u8",
-      "mkOnly": true,
+      "type": "none",
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCjHWbpNN6ID61Mq5q4hlEhA"
-      }
+      },
+      "live": false
     },
     {
       "id": "tv21",
@@ -237,16 +235,6 @@
       }
     },
     {
-      "id": "tv-era",
-      "name": "TV Era",
-      "nameLatin": "TV Era",
-      "group": "На албански",
-      "logo": "https://i.imgur.com/ds0uf7A.png",
-      "type": "url",
-      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(ERA)/index.m3u8",
-      "mkOnly": true
-    },
-    {
       "id": "kanal-8",
       "name": "Канал 8",
       "nameLatin": "Kanal 8",
@@ -259,26 +247,6 @@
         "type": "youtube",
         "youtubeChannelId": "UCRNm-cpcOsXnxSpZ3hQOHaQ"
       }
-    },
-    {
-      "id": "mtm",
-      "name": "МТМ",
-      "nameLatin": "MTM",
-      "group": "Регионални",
-      "logo": "https://i.ibb.co/HCRZVVz/images-4.png",
-      "type": "url",
-      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(MTM)/index.m3u8",
-      "mkOnly": true
-    },
-    {
-      "id": "sutel",
-      "name": "Шутел",
-      "nameLatin": "Šutel TV",
-      "group": "Регионални",
-      "logo": "https://i.imgur.com/hk3lhuF.png",
-      "type": "url",
-      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(Shutel)/index.m3u8",
-      "mkOnly": true
     },
     {
       "id": "tv-nova-12",
@@ -314,13 +282,12 @@
       "nameLatin": "M-Net HD",
       "group": "Регионални",
       "logo": "https://i.imgur.com/HDYqWuR.png",
-      "type": "url",
-      "url": "http://ares.mnet.mk/hls/mnet.m3u8",
-      "mkOnly": true,
+      "type": "none",
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCsHDCmlWbM302OZF9Vp7hlQ"
-      }
+      },
+      "live": false
     },
     {
       "id": "folk-tv",
@@ -389,26 +356,6 @@
       "type": "url",
       "url": "https://stream.nasatv.com.mk/cooltv/hls/cooltv_live.m3u8",
       "mkOnly": false
-    },
-    {
-      "id": "m-net-kids",
-      "name": "М-Нет Kids",
-      "nameLatin": "M-Net Kids",
-      "group": "Останати",
-      "logo": "https://i.imgur.com/SbKkpuH.png",
-      "type": "url",
-      "url": "http://ares.mnet.mk/hls/mnet-kids.m3u8",
-      "mkOnly": true
-    },
-    {
-      "id": "m-net-sport",
-      "name": "М-Нет Sport",
-      "nameLatin": "M-Net Sport",
-      "group": "Останати",
-      "logo": "https://i.imgur.com/7k8ar1Z.png",
-      "type": "url",
-      "url": "http://ares.mnet.mk/hls/mnet-sport.m3u8",
-      "mkOnly": true
     },
     {
       "id": "intv-australia",
