@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -66,16 +67,20 @@ import mk.tv.data.YtPlaylist
 import mk.tv.data.YtVideo
 
 /**
- * Catch-up, navigated left to right: sources (MRT sections, then stations) | that source's shows
- * ("Најново" + shows/playlists) | the episode list. Both menus switch on focus. When the list has
- * focus the two menus tuck away so titles get the full width; ◀ from the list brings them back.
- * Where the viewer was lives in [BrowseState], so it survives playing a video or an app restart.
+ * Catch-up with one left column that drills down:
+ *   level 1: sources (MRT sections, then stations; Albanian-language last). Focus previews the
+ *            source's newest episodes; OK/▶ opens it.
+ *   level 2: that source's shows ("Најново" + shows/playlists) replace the column, under a
+ *            "‹ <source>" header. Shows load on focus; ▶ goes to the episode list.
+ * Back steps out one level at a time (list → shows → sources). Level, source, show, scroll and
+ * focused item live in [BrowseState], so they survive playing a video or an app restart.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ArchiveTab(
     channels: List<Channel>,
     browse: BrowseState,
-    entryFocus: FocusRequester,
+    entryFocus: SafeFocus,
     onPlayEpisode: (ArchiveEpisode, String) -> Unit,
     onPlayYoutube: (List<YtVideo>, Int, String) -> Unit,
     youtubeApp: Boolean,
@@ -86,13 +91,17 @@ fun ArchiveTab(
         channels.filter { it.catchup?.type == "youtube" && it.catchup.youtubeChannelId != null }.sortedBy { it.albanian }
     }
     val source = browse.archiveSource
+    val level = browse.archiveLevel
     val scope = rememberCoroutineScope()
     var listFocused by remember { mutableStateOf(false) }
-    val showFocus = remember { FocusRequester() }
+    val columnFocus = remember { SafeFocus() }   // selected item of the current level
+    val listFocus = remember { FocusRequester() }
 
-    // Shows of the current source: MRT shows, or the station's YouTube playlists ("" = Најново)
     val mrtSection = source.removePrefix("mrt:").toIntOrNull().takeIf { source.startsWith("mrt:") }
     val ytChannel = youtubeChannels.firstOrNull { "yt:${it.catchup?.youtubeChannelId}" == source }
+    val sourceTitle = MrtArchive.sections.firstOrNull { it.id == mrtSection }?.title ?: ytChannel?.name.orEmpty()
+
+    // Shows of the current source: MRT shows, or the station's YouTube playlists ("" = Најново)
     var shows by remember(source) { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     LaunchedEffect(source, ytChannel) {
         shows = runCatching {
@@ -104,50 +113,66 @@ fun ArchiveTab(
         }.getOrDefault(emptyList())
     }
     val latestKey = mrtSection?.toString() ?: ""
-    val selectedShow = browse.selection(source) ?: latestKey
+    // Level 1 previews the source's newest; level 2 shows the selected show
+    val selectedShow = if (level == 2) browse.selection(source) ?: latestKey else latestKey
 
+    // Switching level removes the focused item, and focus can fall elsewhere a frame later: keep
+    // requesting the selected item for a moment until it holds focus
+    fun focusColumnSoon() = scope.launch {
+        repeat(10) {
+            delay(60)
+            if (it >= 3 && columnFocus.isFocused) return@launch
+            columnFocus.request()
+        }
+    }
+    fun openSource() { browse.showArchiveLevel(2); focusColumnSoon() }
+    fun closeSource() { browse.showArchiveLevel(1); focusColumnSoon() }
+
+    // Back: list → column; shows → sources (at level 1 Back leaves the app as usual)
+    BackHandler(enabled = listFocused || level == 2) {
+        if (listFocused) focusColumnSoon() else closeSource()
+    }
+
+    // The entry point from the main menu / app start is the selected item of the current level
     Row(Modifier.fillMaxSize().padding(top = Insets.Top + 8.dp)) {
-        AnimatedVisibility(
-            visible = !listFocused,
-            enter = expandHorizontally() + fadeIn(),
-            exit = shrinkHorizontally() + fadeOut(),
-        ) {
-            Row {
-                SourcesColumn(youtubeChannels, browse, entryFocus, youtubeApp, onYoutubeApp)
-                Spacer(Modifier.width(14.dp))
-                ShowsColumn(
+        Box(Modifier.width(280.dp).fillMaxHeight()) {
+            if (level == 1) {
+                SourcesLevel(youtubeChannels, browse, columnFocus, entryFocus, onOpen = ::openSource, youtubeApp, onYoutubeApp)
+            } else {
+                ShowsLevel(
                     source = source,
+                    sourceTitle = sourceTitle,
                     items = listOf(latestKey to "Најново") + shows,
                     selected = selectedShow,
                     browse = browse,
-                    selectedFocus = showFocus,
+                    selectedFocus = columnFocus,
+                    entryFocus = entryFocus,
+                    onBack = ::closeSource,
+                    onOpenList = { runCatching { listFocus.requestFocus() } },
                 )
             }
         }
-        Spacer(Modifier.width(18.dp))
+        Spacer(Modifier.width(24.dp))
         Box(
-            // starts below the clock in the top-right corner
-            Modifier.weight(1f).fillMaxHeight().padding(top = 40.dp)
+            Modifier.weight(1f).fillMaxHeight()
+                .focusRequester(listFocus)
+                .focusProperties { enter = { FocusRequester.Default } }
                 .onFocusChanged { listFocused = it.hasFocus }
                 .onPreviewKeyEvent { ev ->
-                    // ◀ from the list goes back to the shows menu (and brings the menus back)
+                    // ◀ from the list returns to the column's selected item
                     if (ev.type == KeyEventType.KeyDown && ev.key.nativeKeyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
-                        listFocused = false
-                        scope.launch { delay(80); runCatching { showFocus.requestFocus() } }
-                        true
+                        focusColumnSoon(); true
                     } else false
                 },
         ) {
-            val wide = listFocused
             when {
                 mrtSection != null -> {
                     val category = selectedShow.toIntOrNull() ?: mrtSection
-                    val title = shows.firstOrNull { it.first == category.toString() }?.second
-                        ?: MrtArchive.sections.firstOrNull { it.id == mrtSection }?.title.orEmpty()
-                    EpisodeList(category, browse, wide, onPlay = { onPlayEpisode(it, title) })
+                    val title = shows.firstOrNull { it.first == category.toString() }?.second ?: sourceTitle
+                    EpisodeList(category, browse, true, onPlay = { onPlayEpisode(it, title) })
                 }
                 ytChannel != null -> VideoList(
-                    ytChannel.catchup!!.youtubeChannelId!!, selectedShow.ifEmpty { null }, browse, wide,
+                    ytChannel.catchup!!.youtubeChannelId!!, selectedShow.ifEmpty { null }, browse, true,
                     onPlay = { videos, i -> onPlayYoutube(videos, i, ytChannel.name) },
                 )
             }
@@ -155,13 +180,15 @@ fun ArchiveTab(
     }
 }
 
-/** Column 1: MRT sections, then the stations (Albanian-language last), then the Premium switch. */
+/** Level 1: sources. Focus previews a source; OK or ▶ opens its shows. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun SourcesColumn(
+private fun SourcesLevel(
     youtubeChannels: List<Channel>,
     browse: BrowseState,
-    entryFocus: FocusRequester,
+    selectedFocus: SafeFocus,
+    entryFocus: SafeFocus,
+    onOpen: () -> Unit,
     youtubeApp: Boolean,
     onYoutubeApp: (Boolean) -> Unit,
 ) {
@@ -169,64 +196,111 @@ private fun SourcesColumn(
     val selectedRow = MrtArchive.sections.indexOfFirst { source == "mrt:${it.id}" }.takeIf { it >= 0 }?.plus(1)
         ?: youtubeChannels.indexOfFirst { source == "yt:${it.catchup?.youtubeChannelId}" }.takeIf { it >= 0 }
             ?.plus(MrtArchive.sections.size + 2) ?: 0
-    val menuState = browse.listState("archive-menu")
+    val menuState = browse.listState("archive-sources")
     LaunchedEffect(selectedRow) { scrollIntoView(menuState, selectedRow) }
+
+    @Composable
+    fun SourceItem(key: String, title: String) {
+        val selected = source == key
+        MenuItem(
+            title, selected = selected,
+            onFocus = { browse.selectSource(key) },
+            onClick = onOpen,
+            onRight = onOpen,
+            trailing = "›",
+            modifier = if (selected) selectedFocus.modifier().then(entryFocus.modifier()) else Modifier,
+        )
+    }
+
     LazyColumn(
-        // Entering the column (▶ from the main menu, ◀ from shows) lands on the selected source
-        Modifier.width(210.dp).fillMaxHeight().focusProperties { enter = { entryFocus } }.focusGroup(),
+        Modifier.fillMaxSize().focusProperties { enter = { selectedFocus.target } }.focusGroup(),
         state = menuState,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
-        item { MenuHeader("МРТ архива") }
-        items(MrtArchive.sections, key = { it.id }) { s ->
-            val key = "mrt:${s.id}"
-            MenuItem(
-                s.title, selected = source == key, onSelect = { browse.selectSource(key) },
-                modifier = if (source == key) Modifier.focusRequester(entryFocus) else Modifier,
-            )
-        }
+        item { LevelTitle("Архива") }
+        item { MenuHeader("МРТ") }
+        items(MrtArchive.sections, key = { it.id }) { s -> SourceItem("mrt:${s.id}", s.title) }
         if (youtubeChannels.isNotEmpty()) {
             item { Spacer(Modifier.height(10.dp)); MenuHeader("Други станици") }
-            items(youtubeChannels, key = { "yt-${it.id}" }) { ch ->
-                val key = "yt:${ch.catchup!!.youtubeChannelId}"
-                MenuItem(
-                    ch.name, selected = source == key, onSelect = { browse.selectSource(key) },
-                    modifier = if (source == key) Modifier.focusRequester(entryFocus) else Modifier,
-                )
-            }
+            items(youtubeChannels, key = { "yt-${it.id}" }) { ch -> SourceItem("yt:${ch.catchup!!.youtubeChannelId}", ch.name) }
             item { Spacer(Modifier.height(10.dp)); MenuHeader("YouTube Premium") }
             item { PremiumToggle(youtubeApp, onYoutubeApp) }
         }
     }
 }
 
-/** Column 2: the selected source's shows / playlists, vertically so long lists stay easy to scroll. */
+/** Level 2: one source's shows under a "‹ source" header (OK on it, or Back, returns to sources). */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun ShowsColumn(
+private fun ShowsLevel(
     source: String,
+    sourceTitle: String,
     items: List<Pair<String, String>>,
     selected: String,
     browse: BrowseState,
-    selectedFocus: FocusRequester,
+    selectedFocus: SafeFocus,
+    entryFocus: SafeFocus,
+    onBack: () -> Unit,
+    onOpenList: () -> Unit,
 ) {
     val state = browse.listState("shows:$source")
     val selectedIndex = items.indexOfFirst { it.first == selected }
-    LaunchedEffect(source, selectedIndex) { scrollIntoView(state, selectedIndex + 1) }
+    LaunchedEffect(source, selectedIndex) { scrollIntoView(state, selectedIndex + 2) }
     LazyColumn(
-        // Entering the column lands on the selected show, never on a neighbour
-        Modifier.width(240.dp).fillMaxHeight().focusProperties { enter = { selectedFocus } }.focusGroup(),
+        Modifier.fillMaxSize().focusProperties { enter = { selectedFocus.target } }.focusGroup(),
         state = state,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
-        item { MenuHeader("Емисии") }
+        item(key = "back") { BackHeader(sourceTitle, onBack) }
+        item(key = "label") { MenuHeader("Емисии") }
         items(items, key = { it.first }) { (key, title) ->
             MenuItem(
-                title, selected = key == selected, onSelect = { browse.select(source, key) },
-                modifier = if (key == selected) Modifier.focusRequester(selectedFocus) else Modifier,
+                title, selected = key == selected,
+                onFocus = { browse.select(source, key) },
+                onClick = onOpenList,
+                onRight = onOpenList,
+                modifier = if (key == selected) selectedFocus.modifier().then(entryFocus.modifier()) else Modifier,
                 maxLines = 2,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LevelTitle(text: String) {
+    Text(text, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(start = 14.dp, bottom = 10.dp))
+}
+
+/** "‹ Вести": shows where you are; selecting it goes back to the sources. */
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun BackHeader(title: String, onBack: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Surface(
+        onClick = onBack,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).onFocusChanged { focused = it.isFocused },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            focusedContainerColor = Palette.Gold,
+        ),
+    ) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "‹",
+                style = MaterialTheme.typography.headlineSmall,
+                color = if (focused) androidx.compose.ui.graphics.Color.Black else Palette.Gold,
+                modifier = Modifier.padding(end = 10.dp),
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = if (focused) androidx.compose.ui.graphics.Color.Black else Palette.Text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -287,11 +361,26 @@ private fun MenuHeader(text: String) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun MenuItem(title: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier, maxLines: Int = 1) {
+private fun MenuItem(
+    title: String,
+    selected: Boolean,
+    onFocus: () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onRight: (() -> Unit)? = null,
+    trailing: String? = null,
+    maxLines: Int = 1,
+) {
     var focused by remember { mutableStateOf(false) }
     Surface(
-        onClick = onSelect,
-        modifier = modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused; if (it.isFocused) onSelect() },
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused; if (it.isFocused) onFocus() }
+            .onPreviewKeyEvent { ev ->
+                if (onRight != null && ev.type == KeyEventType.KeyDown && ev.key.nativeKeyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    onRight(); true
+                } else false
+            },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
         colors = ClickableSurfaceDefaults.colors(
@@ -299,18 +388,16 @@ private fun MenuItem(title: String, selected: Boolean, onSelect: () -> Unit, mod
             focusedContainerColor = Palette.Gold,
         ),
     ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            color = when {
-                focused -> androidx.compose.ui.graphics.Color.Black
-                selected -> Palette.Text
-                else -> Palette.TextDim
-            },
-            maxLines = maxLines,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-        )
+        val color = when {
+            focused -> androidx.compose.ui.graphics.Color.Black
+            selected -> Palette.Text
+            else -> Palette.TextDim
+        }
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = color, maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (trailing != null) Text(trailing, style = MaterialTheme.typography.titleMedium, color = color)
+        }
     }
 }
 
@@ -489,7 +576,7 @@ private fun ArchiveRow(
         ),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(if (wide) 192.dp else 128.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)).background(Palette.SurfaceHigh)) {
+            Box(Modifier.width(if (wide) 176.dp else 128.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)).background(Palette.SurfaceHigh)) {
                 SubcomposeAsyncImage(
                     model = thumbnail,
                     contentDescription = null,

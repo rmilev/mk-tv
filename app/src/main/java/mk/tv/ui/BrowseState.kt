@@ -26,6 +26,16 @@ class BrowseState(private val prefs: Prefs) {
     var archiveSource by mutableStateOf(prefs.getString(K_SOURCE) ?: "mrt:2")
         private set
 
+    /** Archive menu level: 1 = sources (МРТ sections, stations), 2 = shows of [archiveSource]. */
+    var archiveLevel by mutableIntStateOf(prefs.getString(K_LEVEL)?.toIntOrNull()?.coerceIn(1, 2) ?: 1)
+        private set
+
+    fun showArchiveLevel(level: Int) {
+        if (level == archiveLevel) return
+        archiveLevel = level
+        prefs.putString(K_LEVEL, level.toString())
+    }
+
     /** Per MRT section: selected show (category id). Per YouTube channel: selected playlist id ("" = latest). */
     private val selection = mutableStateMapOf<String, String>().apply { putAll(decode(prefs.getString(K_SELECTION))) }
 
@@ -128,6 +138,7 @@ class BrowseState(private val prefs: Prefs) {
     private companion object {
         const val K_TAB = "nav_tab"
         const val K_SOURCE = "nav_source"
+        const val K_LEVEL = "nav_level"
         const val K_SELECTION = "nav_selection"
         const val K_FOCUS = "nav_focus"
         const val K_FOCUS_INDEX = "nav_focus_index"

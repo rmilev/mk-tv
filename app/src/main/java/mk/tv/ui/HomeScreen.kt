@@ -40,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,9 +56,6 @@ import kotlinx.coroutines.delay
 import mk.tv.data.ArchiveEpisode
 import mk.tv.data.Channel
 import mk.tv.data.YtVideo
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private data class Section(val title: String, val icon: ImageVector)
 
@@ -92,14 +88,14 @@ fun HomeScreen(
     // Only the archive restores a focused list item; elsewhere don't let it grab focus later
     LaunchedEffect(tab) { if (tab != 1) browse.focusRestored() }
     // Focus target for the archive when the app starts there with nothing to restore
-    val archiveEntry = remember { FocusRequester() }
-    val sectionFocus = remember { List(Sections.size) { FocusRequester() } }
+    val archiveEntry = remember { SafeFocus() }
+    val sectionFocus = remember { List(Sections.size) { SafeFocus() } }
     LaunchedEffect(Unit) {
         if (tab == 1) browse.consumeLiveRestore()
         // If a list item is about to be restored (returning from a video), leave focus to it
         val restoring = browse.pendingRestoreKey() != null
         delay(250)
-        if (tab == 1 && !restoring) runCatching { archiveEntry.requestFocus() }
+        if (tab == 1 && !restoring) archiveEntry.request()
     }
 
     NavigationDrawer(
@@ -107,7 +103,7 @@ fun HomeScreen(
             Column(
                 Modifier.fillMaxHeight().background(Palette.Background).padding(horizontal = 12.dp, vertical = Insets.Top)
                     // ◀ from the content always lands on the current section, never a neighbour
-                    .focusProperties { enter = { sectionFocus[tab] } }
+                    .focusProperties { enter = { sectionFocus[tab].target } }
                     .focusGroup(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -123,7 +119,7 @@ fun HomeScreen(
                         selected = tab == i,
                         onClick = { browse.selectTab(i) },
                         // Switch section as soon as an item is focused, like the rest of the app
-                        modifier = Modifier.focusRequester(sectionFocus[i]).onFocusChanged { if (it.isFocused) browse.selectTab(i) },
+                        modifier = sectionFocus[i].modifier().onFocusChanged { if (it.isFocused) browse.selectTab(i) },
                         leadingContent = { Icon(section.icon, contentDescription = section.title) },
                         colors = NavigationDrawerItemDefaults.colors(
                             focusedContainerColor = Palette.Gold,
@@ -145,21 +141,8 @@ fun HomeScreen(
                 1 -> ArchiveTab(channels, browse, archiveEntry, onPlayEpisode, onPlayYoutube, youtubeApp, onYoutubeApp)
                 else -> ChannelsTab(channels.filter { it.live && it.radio }, favorites, lastChannelId, browse, "radio", onPlayChannel, onToggleFavorite)
             }
-            Box(Modifier.align(Alignment.TopEnd).padding(top = Insets.Top, end = Insets.Horizontal)) { Clock() }
         }
     }
-}
-
-@Composable
-private fun Clock() {
-    val time by produceState(initialValue = "") {
-        val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
-        while (true) {
-            value = fmt.format(Date())
-            delay(10_000)
-        }
-    }
-    Text(time, style = MaterialTheme.typography.headlineSmall, color = Palette.TextDim)
 }
 
 /** Live TV / radio: a hero panel for the focused channel above one continuous grid of channels. */
