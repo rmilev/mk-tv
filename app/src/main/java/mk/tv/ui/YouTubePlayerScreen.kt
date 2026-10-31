@@ -67,7 +67,7 @@ import mk.tv.data.YtVideo
 /**
  * Plays a station's YouTube video inside the app with YouTube's official embedded player.
  * YouTube's own controls are hidden; the remote drives [ArchiveControls]: OK play/pause and buttons
- * (incl. "open in YouTube"), ◀/▶ 10 s, ▲ scrubber, ▼ the other videos. The next video starts at the end.
+ * (incl. "open in YouTube"), ◀/▶ or ▲ scrubber, ▼ the other videos. The next video starts at the end.
  */
 @Composable
 fun YouTubePlayerScreen(

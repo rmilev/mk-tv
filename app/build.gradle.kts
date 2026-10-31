@@ -22,8 +22,8 @@ android {
         applicationId = "mk.tv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.3.3"
+        versionCode = 14
+        versionName = "1.4.2"
     }
 
     signingConfigs {

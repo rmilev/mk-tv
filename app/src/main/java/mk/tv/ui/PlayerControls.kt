@@ -74,7 +74,7 @@ class UpNextItem(val title: String, val image: String?, val meta: String = "")
 /**
  * Remote handling shared by the archive players (MRT episodes and YouTube videos). The overlay is a
  * vertical stack the remote moves through: scrubber (▲) · buttons (OK) · other videos (▼).
- * With nothing selected, ◀/▶ jump 10 s and OK pauses and selects the buttons.
+ * With nothing selected, ◀/▶ go straight to scrubbing (like YouTube) and OK pauses and selects the buttons.
  */
 @Stable
 class ArchiveControls(private val scope: CoroutineScope) {
@@ -120,8 +120,8 @@ class ArchiveControls(private val scope: CoroutineScope) {
                     KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                         p.togglePlay(); row = Row.Buttons; button = 0; true
                     }
-                    KeyEvent.KEYCODE_DPAD_LEFT -> { p.seekTo((p.position - 10f).coerceAtLeast(0f)); true }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> { p.seekTo(p.position + 10f); true }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> { row = Row.Scrubber; scrub(-1, repeat, p); true }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> { row = Row.Scrubber; scrub(1, repeat, p); true }
                     KeyEvent.KEYCODE_DPAD_UP -> { row = Row.Scrubber; true }
                     KeyEvent.KEYCODE_DPAD_DOWN -> { openUpNext(p); true }
                     else -> false

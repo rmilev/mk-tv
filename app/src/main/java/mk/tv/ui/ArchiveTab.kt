@@ -57,6 +57,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.SubcomposeAsyncImage
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import mk.tv.data.ArchiveEpisode
 import mk.tv.data.ArchiveShow
@@ -107,26 +108,42 @@ fun ArchiveTab(
     // Shows of the current source: MRT shows, or the station's YouTube playlists ("" = Најново)
     var shows by remember(source) { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     LaunchedEffect(source, ytChannel) {
-        shows = runCatching {
-            when {
-                mrtSection != null -> MrtArchive.shows(mrtSection).map { it.id.toString() to it.title }
-                ytChannel != null -> YouTubeArchive.playlists(ytChannel.catchup!!.youtubeChannelId!!).map { it.id to it.title }
-                else -> emptyList()
-            }
-        }.getOrDefault(emptyList())
+        // A failed load (flaky network) is retried a couple of times instead of leaving only "Најново"
+        repeat(3) { attempt ->
+            runCatching {
+                when {
+                    mrtSection != null -> MrtArchive.shows(mrtSection).map { it.id.toString() to it.title }
+                    ytChannel != null -> YouTubeArchive.playlists(ytChannel.catchup!!.youtubeChannelId!!).map { it.id to it.title }
+                    else -> emptyList()
+                }
+            }.onSuccess { shows = it; return@LaunchedEffect }
+            delay(2_000L * (attempt + 1))
+        }
     }
     val latestKey = mrtSection?.toString() ?: ""
     // Level 1 previews the source's newest; level 2 shows the selected show
     val selectedShow = if (level == 2) browse.selection(source) ?: latestKey else latestKey
+    // The menu entry ◀/Back land on: the selected show, or "Најново" if that show isn't listed (any more)
+    val menuShow = selectedShow.takeIf { key -> key == latestKey || shows.any { it.first == key } } ?: latestKey
 
     // Switching level removes the focused item, and focus can fall elsewhere a frame later: keep
-    // requesting the selected item for a moment until it holds focus
-    fun focusColumnSoon() = scope.launch {
-        repeat(10) {
-            delay(60)
-            if (it >= 3 && columnFocus.isFocused) return@launch
-            columnFocus.request()
+    // requesting the selected item for a moment until it holds focus. Stops as soon as the viewer
+    // moves into the list (▶ right after Back), so it never pulls focus back to the menu.
+    var columnJob by remember { mutableStateOf<Job?>(null) }
+    fun focusColumnSoon() {
+        columnJob?.cancel()
+        columnJob = scope.launch {
+            repeat(10) {
+                delay(60)
+                if (it >= 1 && listFocused) return@launch
+                if (it >= 3 && columnFocus.isFocused) return@launch
+                columnFocus.request()
+            }
         }
+    }
+    fun openList() {
+        columnJob?.cancel()
+        runCatching { listFocus.requestFocus() }
     }
     fun openSource() { browse.showArchiveLevel(2); focusColumnSoon() }
     fun closeSource() { browse.showArchiveLevel(1); focusColumnSoon() }
@@ -146,12 +163,12 @@ fun ArchiveTab(
                     source = source,
                     sourceTitle = sourceTitle,
                     items = listOf(latestKey to "Најново") + shows,
-                    selected = selectedShow,
+                    selected = menuShow,
                     browse = browse,
                     selectedFocus = columnFocus,
                     entryFocus = entryFocus,
                     onBack = ::closeSource,
-                    onOpenList = { runCatching { listFocus.requestFocus() } },
+                    onOpenList = ::openList,
                 )
             }
         }

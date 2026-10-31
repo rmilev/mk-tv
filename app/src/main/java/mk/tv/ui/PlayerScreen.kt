@@ -96,7 +96,7 @@ private sealed interface PlayerStatus {
 
 /**
  * Full-screen player. Live: ▲/▼ (or CH+/CH−) zap, ◀ opens the channel list, OK shows info.
- * Catch-up: [ArchiveControls] (OK play/pause, ◀/▶ 10 s, ▲ scrubber, ▼ the show's other episodes).
+ * Catch-up: [ArchiveControls] (OK play/pause, ◀/▶ or ▲ scrubber, ▼ the show's other episodes).
  */
 @OptIn(UnstableApi::class)
 @Composable
