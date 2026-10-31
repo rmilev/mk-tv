@@ -2,8 +2,10 @@ package mk.tv.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -23,11 +25,22 @@ object Http {
             val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).apply {
                 headers.forEach { (k, v) -> header(k, v) }
             }.build()
-            client.newCall(request).execute().use { resp ->
-                if (resp.code == 403 || resp.code == 451) throw GeoBlockedException("HTTP ${resp.code} for $url")
-                if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
-                resp.body?.string() ?: ""
-            }
+            execute(request, url)
+        }
+
+    suspend fun postJson(url: String, json: String, headers: Map<String, String> = emptyMap()): String =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).apply {
+                headers.forEach { (k, v) -> header(k, v) }
+            }.post(json.toRequestBody("application/json".toMediaType())).build()
+            execute(request, url)
+        }
+
+    private fun execute(request: Request, url: String): String =
+        client.newCall(request).execute().use { resp ->
+            if (resp.code == 403 || resp.code == 451) throw GeoBlockedException("HTTP ${resp.code} for $url")
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
+            resp.body?.string() ?: ""
         }
 }
 

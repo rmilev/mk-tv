@@ -20,6 +20,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _favorites = MutableStateFlow(prefs.favorites)
     val favorites: StateFlow<Set<String>> = _favorites
 
+    private val _youtubeApp = MutableStateFlow(prefs.youtubeApp)
+    val youtubeApp: StateFlow<Boolean> = _youtubeApp
+
+    fun setYoutubeApp(on: Boolean) {
+        prefs.youtubeApp = on
+        _youtubeApp.value = on
+    }
+
     init {
         viewModelScope.launch {
             _channels.value = repo.load()

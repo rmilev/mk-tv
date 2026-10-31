@@ -7,9 +7,10 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
 ## Features
 
 - **Live TV**: 24 channels in rows (МРТ, National, Albanian-language, Regional, Music…). A hero panel shows the focused channel.
-- **Catch-up**:
-  - **MRT archive in the app**: browse sections (News, Sport, MRT Production, Documentary, 50 Years of MRT, Promo), then shows, then episodes, with infinite scroll. The archive plays worldwide.
-  - **Private stations**: their official YouTube channels, opened in the YouTube app.
+- **Catch-up, all inside the app**:
+  - **MRT archive**: browse sections (News, Sport, MRT Production, Documentary, 50 Years of MRT, Promo), then shows, then episodes, with infinite scroll. The archive plays worldwide.
+  - **18 private stations from their official YouTube channels**: the latest videos plus the station's playlists as shows (e.g. Sitel → Тема на денот, Kanal 5 → Менуваме животи), with infinite scroll. They play in the app with YouTube's official embedded player and remote controls: OK pause, ◀/▶ seek 10 s, ▲/▼ previous or next video, and the next video starts automatically.
+  - **YouTube Premium**: turn on **Без реклами** (no ads) in Архива to open videos in your signed-in YouTube app instead. They play ad-free, and Back returns to МК ТВ.
 - **Radio**: MR 1, MR 2, MR 3, MR SAT.
 - **Built for the remote**: D-pad everywhere, a gold focus ring with zoom, a 10-foot layout with overscan-safe margins, and Macedonian labels.
 - **Player**: ▲/▼ or CH+/CH− zap channels, ◀ opens the channel list, OK shows channel info. In catch-up, OK is play/pause and ◀/▶ seek 10 s.
@@ -20,8 +21,10 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
 | Catch-up (MRT archive) | Channel list in the player |
 |---|---|
 | ![Catch-up](docs/screenshots/catch-up.png) | ![Channel list](docs/screenshots/channel-list.png) |
-| **Private stations on YouTube** | **MK-only channel without a VPN** |
-| ![YouTube](docs/screenshots/stations-youtube.png) | ![VPN hint](docs/screenshots/vpn-hint.png) |
+| **Station catch-up from YouTube** | **YouTube video playing in the app** |
+| ![YouTube](docs/screenshots/stations-youtube.png) | ![YouTube player](docs/screenshots/youtube-player.png) |
+| **MK-only channel without a VPN** | |
+| ![VPN hint](docs/screenshots/vpn-hint.png) | |
 
 ## Install on your TV
 
@@ -62,6 +65,7 @@ Sitel and Kanal 5 come from teve.mk, a public restream listed by iptv-org, becau
 - **MRT Play** signs live links for 30 minutes. The app scrapes a fresh link from the channel page each time you tune in, and fetches another one if a link expires mid-stream.
 - **The MRT archive** is read live from play.mrt.com.mk: section pages, a JSON episode list paged 24 at a time, then the episode's HLS link.
 - **Other stations** are fixed HLS URLs, or page plus regex entries (`type: "page"`) when the link changes.
+- **YouTube catch-up** reads each channel's public `/videos` and `/playlists` pages (the `ytInitialData` the website renders) and loads more through the web client's browse continuation. No API key is needed. The app shows no ads of its own. Videos play in the official IFrame player ([android-youtube-player](https://github.com/PierfrancescoSoffritti/android-youtube-player)) with the origin set to `https://rmilev.github.io`, because YouTube rejects embeds that have no origin (error 152).
 
 ### Add or fix a channel
 
@@ -93,7 +97,7 @@ keyAlias=mktv
 keyPassword=…
 ```
 
-Stack: Kotlin, Jetpack Compose for TV (`androidx.tv:tv-material`), Media3 ExoPlayer (HLS), OkHttp, Coil, kotlinx.serialization.
+Stack: Kotlin, Jetpack Compose for TV (`androidx.tv:tv-material`), Media3 ExoPlayer (HLS), android-youtube-player (official YouTube IFrame player), OkHttp, Coil, kotlinx.serialization.
 
 ## Disclaimer
 

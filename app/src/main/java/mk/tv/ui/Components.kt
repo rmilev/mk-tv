@@ -1,6 +1,9 @@
 package mk.tv.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +52,7 @@ import androidx.tv.material3.Text
 import coil.compose.SubcomposeAsyncImage
 import mk.tv.data.ArchiveEpisode
 import mk.tv.data.Channel
+import mk.tv.data.YtVideo
 
 private val CardShape = RoundedCornerShape(14.dp)
 
@@ -195,6 +199,40 @@ fun EpisodeCard(episode: ArchiveEpisode, onClick: () -> Unit, onFocus: () -> Uni
 }
 
 @Composable
+fun VideoCard(video: YtVideo, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FocusCard(onClick = onClick, modifier = modifier) { focused ->
+        Column {
+            Box {
+                SubcomposeAsyncImage(
+                    model = video.thumbnail,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Palette.SurfaceHigh),
+                )
+                if (video.duration.isNotBlank()) {
+                    Box(Modifier.align(Alignment.BottomEnd).padding(8.dp)) {
+                        Pill { Text(video.duration, style = MaterialTheme.typography.labelMedium, color = Color.White) }
+                    }
+                }
+            }
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                Text(
+                    video.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (focused) Palette.Gold else Palette.Text,
+                    maxLines = 2,
+                    minLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (video.published.isNotBlank()) {
+                    Text(video.published, style = MaterialTheme.typography.bodyMedium, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun Pill(content: @Composable () -> Unit) {
     Row(
         Modifier.clip(RoundedCornerShape(50)).background(Color(0xCC000000)).padding(horizontal = 8.dp, vertical = 4.dp),
@@ -219,11 +257,27 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MaterialTheme.typography.headlineSmall, modifier = modifier.padding(bottom = 14.dp))
 }
 
-/** Small sun mark used in the top bar (same motif as the launcher icon). */
+/** App mark in the top bar: the launcher icon (gold flag sun on a red tile). */
 @Composable
-fun SunMark(size: Dp = 34.dp) {
-    Box(Modifier.size(size).clip(CircleShape).background(Palette.Red).border(3.dp, Palette.Gold, CircleShape), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(size / 3).clip(CircleShape).background(Palette.Gold))
+fun SunMark(size: Dp = 40.dp) {
+    Canvas(Modifier.size(size).clip(RoundedCornerShape(size / 5)).background(Palette.Red)) {
+        val c = center
+        val r = this.size.minDimension / 2f
+        val rays = Path()
+        for (k in 0 until 8) {
+            val a = Math.toRadians((k * 45 - 90).toDouble())
+            val cos = kotlin.math.cos(a).toFloat()
+            val sin = kotlin.math.sin(a).toFloat()
+            fun pt(dist: Float, off: Float) = Offset(c.x + dist * cos - off * sin, c.y + dist * sin + off * cos)
+            val r0 = r * 0.28f; val r1 = r * 1.15f; val w0 = r * 0.05f; val w1 = r * 0.24f
+            rays.moveTo(pt(r0, -w0).x, pt(r0, -w0).y)
+            rays.lineTo(pt(r1, -w1).x, pt(r1, -w1).y)
+            rays.lineTo(pt(r1, w1).x, pt(r1, w1).y)
+            rays.lineTo(pt(r0, w0).x, pt(r0, w0).y)
+            rays.close()
+        }
+        drawPath(rays, Palette.Gold)
+        drawCircle(Palette.Gold, radius = r * 0.33f, center = c)
     }
 }
 

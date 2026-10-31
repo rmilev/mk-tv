@@ -22,8 +22,8 @@ android {
         applicationId = "mk.tv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.1.0"
     }
 
     signingConfigs {
@@ -75,4 +75,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    // Official YouTube IFrame player in a WebView (catch-up for stations that publish on YouTube)
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.2")
 }

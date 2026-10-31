@@ -40,6 +40,7 @@ import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
 import mk.tv.data.ArchiveEpisode
 import mk.tv.data.Channel
+import mk.tv.data.YtVideo
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -57,7 +58,9 @@ fun HomeScreen(
     onPlayChannel: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
     onPlayEpisode: (ArchiveEpisode, String) -> Unit,
-    onOpenYoutube: (Channel) -> Unit,
+    onPlayYoutube: (List<YtVideo>, Int, String) -> Unit,
+    youtubeApp: Boolean,
+    onYoutubeApp: (Boolean) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
         // Top bar: brand, tabs (switch on focus, like every TV app), clock
@@ -101,7 +104,7 @@ fun HomeScreen(
 
         when (tab) {
             0 -> ChannelsTab(channels.filter { it.live && !it.radio }, favorites, lastChannelId, onPlayChannel, onToggleFavorite)
-            1 -> ArchiveTab(channels, onPlayEpisode, onOpenYoutube)
+            1 -> ArchiveTab(channels, onPlayEpisode, onPlayYoutube, youtubeApp, onYoutubeApp)
             else -> ChannelsTab(channels.filter { it.live && it.radio }, favorites, lastChannelId, onPlayChannel, onToggleFavorite)
         }
     }

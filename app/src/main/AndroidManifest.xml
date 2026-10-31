@@ -38,5 +38,6 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" android:host="www.youtube.com" />
         </intent>
+        <package android:name="com.google.android.youtube.tv" />
     </queries>
 </manifest>
