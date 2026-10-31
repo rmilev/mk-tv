@@ -1,6 +1,5 @@
 package mk.tv.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -49,9 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import mk.tv.R
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -111,7 +108,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Row(Modifier.padding(start = 6.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Image(painterResource(R.drawable.tv_mark), contentDescription = null, modifier = Modifier.height(44.dp))
+                    SunMark(36.dp)
                     if (drawer == DrawerValue.Open) {
                         Spacer(Modifier.width(12.dp))
                         Text("МК ТВ", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
