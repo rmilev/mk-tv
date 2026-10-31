@@ -75,20 +75,23 @@ import mk.tv.data.YtVideo
  * Back steps out one level at a time (list → shows → sources). Level, source, show, scroll and
  * focused item live in [BrowseState], so they survive playing a video or an app restart.
  */
+private val ArchiveLead = listOf("sitel", "kanal-5", "nasa-tv", "tv-24", "telma", "alfa-tv", "tera")
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ArchiveTab(
     channels: List<Channel>,
     browse: BrowseState,
     entryFocus: SafeFocus,
-    onPlayEpisode: (ArchiveEpisode, String) -> Unit,
+    onPlayEpisode: (List<ArchiveEpisode>, Int, String) -> Unit,
     onPlayYoutube: (List<YtVideo>, Int, String) -> Unit,
     youtubeApp: Boolean,
     onYoutubeApp: (Boolean) -> Unit,
 ) {
-    // Macedonian-language stations first, Albanian-language ones at the end
+    // National stations first (in [ArchiveLead] order), then the rest; Albanian-language ones at the end
     val youtubeChannels = remember(channels) {
-        channels.filter { it.catchup?.type == "youtube" && it.catchup.youtubeChannelId != null }.sortedBy { it.albanian }
+        channels.filter { it.catchup?.type == "youtube" && it.catchup.youtubeChannelId != null }
+            .sortedWith(compareBy({ it.albanian }, { ArchiveLead.indexOf(it.id).takeIf { i -> i >= 0 } ?: Int.MAX_VALUE }))
     }
     val source = browse.archiveSource
     val level = browse.archiveLevel
@@ -169,7 +172,7 @@ fun ArchiveTab(
                 mrtSection != null -> {
                     val category = selectedShow.toIntOrNull() ?: mrtSection
                     val title = shows.firstOrNull { it.first == category.toString() }?.second ?: sourceTitle
-                    EpisodeList(category, browse, true, onPlay = { onPlayEpisode(it, title) })
+                    EpisodeList(category, browse, true, onPlay = { episodes, i -> onPlayEpisode(episodes, i, title) })
                 }
                 ytChannel != null -> VideoList(
                     ytChannel.catchup!!.youtubeChannelId!!, selectedShow.ifEmpty { null }, browse, true,
@@ -402,7 +405,7 @@ private fun MenuItem(
 }
 
 @Composable
-private fun EpisodeList(categoryId: Int, browse: BrowseState, wide: Boolean, onPlay: (ArchiveEpisode) -> Unit) {
+private fun EpisodeList(categoryId: Int, browse: BrowseState, wide: Boolean, onPlay: (List<ArchiveEpisode>, Int) -> Unit) {
     val listKey = "mrt-list:$categoryId"
     val data = browse.episodes(categoryId)
 
@@ -439,7 +442,7 @@ private fun EpisodeList(categoryId: Int, browse: BrowseState, wide: Boolean, onP
             wide = wide,
             modifier = focusModifier,
             onFocus = { browse.focus(listKey, "ep:${ep.id}", i) },
-            onClick = { browse.requestFocusRestore(); onPlay(ep) },
+            onClick = { browse.requestFocusRestore(); onPlay(data.items.toList(), i) },
         )
     }
 }

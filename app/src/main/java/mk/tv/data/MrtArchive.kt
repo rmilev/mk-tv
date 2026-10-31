@@ -1,5 +1,10 @@
 package mk.tv.data
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
@@ -46,8 +51,29 @@ object MrtArchive {
             .distinctBy { it.first }
             .map { (id, title) -> ArchiveShow(id, title.removeSuffix("..").trim().prettyTitle()) }
             .toList()
+            .withVideos()
         showsCache[sectionId] = shows
         shows
+    }
+
+    /**
+     * The site lists some shows that have no videos at all ("Нема видеа во оваа категорија", e.g. many
+     * documentary series). Ask for one episode of each and drop the empty ones; keep a show if the
+     * check itself fails.
+     */
+    private suspend fun List<ArchiveShow>.withVideos(): List<ArchiveShow> = coroutineScope {
+        val permits = Semaphore(12)
+        map { show ->
+            async {
+                permits.withPermit {
+                    val empty = runCatching {
+                        val obj = json.parseToJsonElement(Http.get("$SITE/p/${show.id}/1/1/0/1/4/")).jsonObject
+                        obj["page_html"]?.jsonPrimitive?.content.isNullOrBlank()
+                    }.getOrDefault(false)
+                    show.takeUnless { empty }
+                }
+            }
+        }.awaitAll().filterNotNull()
     }
 
     suspend fun episodes(categoryId: Int, page: Int): EpisodePage {

@@ -33,7 +33,7 @@ import mk.tv.ui.YouTubePlayerScreen
 sealed interface Route {
     data object Home : Route
     data class Live(val channelId: String) : Route
-    data class Episode(val episode: ArchiveEpisode, val show: String) : Route
+    data class Episode(val episodes: List<ArchiveEpisode>, val index: Int, val show: String) : Route
     data class YouTube(val videos: List<YtVideo>, val index: Int, val station: String) : Route
 }
 
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             browse = vm.browse,
                             onPlayChannel = { stack.add(Route.Live(it.id)) },
                             onToggleFavorite = { vm.toggleFavorite(it.id) },
-                            onPlayEpisode = { ep, show -> stack.add(Route.Episode(ep, show)) },
+                            onPlayEpisode = { episodes, i, show -> stack.add(Route.Episode(episodes, i, show)) },
                             onPlayYoutube = { videos, i, station ->
                                 // Default: in-app player (stays in МК ТВ). "Без реклами" hands off to the signed-in YouTube app
                                 if (youtubeApp && openYoutubeVideo(videos[i])) Unit else stack.add(Route.YouTube(videos, i, station))
@@ -90,10 +90,12 @@ class MainActivity : ComponentActivity() {
                             onExit = { last -> vm.browse.returnTo("yt:${last.id}"); stack.removeAt(stack.lastIndex) },
                         )
                         is Route.Episode -> PlayerScreen(
-                            item = PlaybackItem.Vod(route.episode, route.show),
+                            item = PlaybackItem.Vod(route.episodes, route.index, route.show),
                             lineup = emptyList(),
                             favorites = favorites,
                             onChannelChanged = {},
+                            // Back in the list, focus the last episode watched
+                            onEpisodeChanged = { vm.browse.returnTo("ep:${it.id}") },
                             onExit = { stack.removeAt(stack.lastIndex) },
                         )
                     }

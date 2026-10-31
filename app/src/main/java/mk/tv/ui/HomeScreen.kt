@@ -1,5 +1,6 @@
 package mk.tv.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -48,7 +49,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import mk.tv.R
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -79,7 +82,7 @@ fun HomeScreen(
     browse: BrowseState,
     onPlayChannel: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
-    onPlayEpisode: (ArchiveEpisode, String) -> Unit,
+    onPlayEpisode: (List<ArchiveEpisode>, Int, String) -> Unit,
     onPlayYoutube: (List<YtVideo>, Int, String) -> Unit,
     youtubeApp: Boolean,
     onYoutubeApp: (Boolean) -> Unit,
@@ -108,7 +111,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Row(Modifier.padding(start = 6.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    SunMark(36.dp)
+                    Image(painterResource(R.drawable.tv_mark), contentDescription = null, modifier = Modifier.height(44.dp))
                     if (drawer == DrawerValue.Open) {
                         Spacer(Modifier.width(12.dp))
                         Text("МК ТВ", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
@@ -225,10 +228,7 @@ private fun HeroPanel(channel: Channel, favorite: Boolean) {
                 if (channel.catchup != null) Text("• Има архива", style = MaterialTheme.typography.titleMedium, color = Palette.TextDim)
             }
             Text(
-                when {
-                    channel.mkOnly -> "Достапно само од Македонија – вклучете VPN (North Macedonia)."
-                    else -> "Достапно насекаде."
-                } + if (favorite) "  ★ Во омилени – задржете OK за отстранување." else "  Задржете OK за омилени.",
+                if (favorite) "★ Во омилени – задржете OK за отстранување." else "Задржете OK за омилени.",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

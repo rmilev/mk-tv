@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
@@ -156,11 +155,6 @@ fun ChannelCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     if (favorite) Pill { Icon(Icons.Filled.Star, null, tint = Palette.Gold, modifier = Modifier.size(14.dp)) }
-                    if (channel.mkOnly) Pill {
-                        Icon(Icons.Filled.Lock, null, tint = Color.White, modifier = Modifier.size(12.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("МК", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                    }
                 }
             }
             Text(
@@ -255,30 +249,6 @@ fun LiveBadge() {
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MaterialTheme.typography.headlineSmall, modifier = modifier.padding(bottom = 14.dp))
-}
-
-/** App mark in the top bar: the launcher icon (gold flag sun on a red tile). */
-@Composable
-fun SunMark(size: Dp = 40.dp) {
-    Canvas(Modifier.size(size).clip(RoundedCornerShape(size / 5)).background(Palette.Red)) {
-        val c = center
-        val r = this.size.minDimension / 2f
-        val rays = Path()
-        for (k in 0 until 8) {
-            val a = Math.toRadians((k * 45 - 90).toDouble())
-            val cos = kotlin.math.cos(a).toFloat()
-            val sin = kotlin.math.sin(a).toFloat()
-            fun pt(dist: Float, off: Float) = Offset(c.x + dist * cos - off * sin, c.y + dist * sin + off * cos)
-            val r0 = r * 0.28f; val r1 = r * 1.15f; val w0 = r * 0.05f; val w1 = r * 0.24f
-            rays.moveTo(pt(r0, -w0).x, pt(r0, -w0).y)
-            rays.lineTo(pt(r1, -w1).x, pt(r1, -w1).y)
-            rays.lineTo(pt(r1, w1).x, pt(r1, w1).y)
-            rays.lineTo(pt(r0, w0).x, pt(r0, w0).y)
-            rays.close()
-        }
-        drawPath(rays, Palette.Gold)
-        drawCircle(Palette.Gold, radius = r * 0.33f, center = c)
-    }
 }
 
 @Composable

@@ -29,11 +29,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,7 +84,7 @@ import mk.tv.data.StreamResolver
 
 sealed interface PlaybackItem {
     data class Live(val channel: Channel) : PlaybackItem
-    data class Vod(val episode: ArchiveEpisode, val show: String) : PlaybackItem
+    data class Vod(val episodes: List<ArchiveEpisode>, val index: Int, val show: String) : PlaybackItem
 }
 
 private sealed interface PlayerStatus {
@@ -93,7 +96,7 @@ private sealed interface PlayerStatus {
 
 /**
  * Full-screen player. Live: ▲/▼ (or CH+/CH−) zap, ◀ opens the channel list, OK shows info.
- * Catch-up: standard transport controls (OK play/pause, ◀/▶ seek).
+ * Catch-up: [ArchiveControls] (OK play/pause, ◀/▶ 10 s, ▲ scrubber, ▼ the show's other episodes).
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -102,6 +105,7 @@ fun PlayerScreen(
     lineup: List<Channel>,
     favorites: Set<String>,
     onChannelChanged: (Channel) -> Unit,
+    onEpisodeChanged: (ArchiveEpisode) -> Unit = {},
     onExit: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -118,7 +122,13 @@ fun PlayerScreen(
     var retried by remember { mutableStateOf(false) }
     var infoTimer by remember { mutableStateOf<Job?>(null) }
     val rootFocus = remember { FocusRequester() }
-    var playerView by remember { mutableStateOf<PlayerView?>(null) }
+    val vod = item as? PlaybackItem.Vod
+    var vodIndex by remember { mutableIntStateOf(vod?.index ?: 0) }
+    val episode = vod?.episodes?.getOrNull(vodIndex)
+    val controls = remember { ArchiveControls(scope) }
+    var position by remember { mutableFloatStateOf(0f) }
+    var duration by remember { mutableFloatStateOf(0f) }
+    var playing by remember { mutableStateOf(false) }
 
     fun flashInfo() {
         showInfo = true
@@ -141,7 +151,7 @@ fun PlayerScreen(
             runCatching {
                 when (item) {
                     is PlaybackItem.Live -> StreamResolver.resolve(current!!, fresh)
-                    is PlaybackItem.Vod -> MrtArchive.episodeStream(item.episode.id)
+                    is PlaybackItem.Vod -> MrtArchive.episodeStream(item.episodes[vodIndex].id)
                 }
             }.onSuccess { play(it) }
                 .onFailure { e -> status = if (e is GeoBlockedException) PlayerStatus.GeoBlocked else PlayerStatus.Failed(e.message ?: "Грешка") }
@@ -162,6 +172,47 @@ fun PlayerScreen(
         if (lineup.isEmpty()) return
         val i = lineup.indexOfFirst { it.id == ch.id }.coerceAtLeast(0)
         tune(lineup[(i + step + lineup.size) % lineup.size])
+    }
+
+    fun playEpisode(i: Int) {
+        val list = vod?.episodes ?: return
+        if (i !in list.indices) return
+        vodIndex = i
+        onEpisodeChanged(list[i])
+        player.stop()
+        position = 0f
+        duration = 0f
+        load()
+        controls.show()
+    }
+
+    val nowPos = { position }
+    val nowLength = { duration }
+    val nowPlaying = { playing }
+    val nowIndex = { vodIndex }
+    val playback = object : ArchivePlayback {
+        override val position get() = nowPos()
+        override val duration get() = nowLength()
+        override val playing get() = nowPlaying()
+        override val index get() = nowIndex()
+        override val count get() = vod?.episodes?.size ?: 0
+        override fun togglePlay() { if (player.isPlaying) player.pause() else player.play() }
+        override fun seekTo(seconds: Float) { player.seekTo((seconds * 1000).toLong()) }
+        override fun playIndex(i: Int) = playEpisode(i)
+    }
+    val buttons = listOf(
+        PlayerButton(if (playing) "Пауза" else "Пушти", if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow) { playback.togglePlay() },
+    )
+    val upNext = remember(vod) { vod?.episodes?.map { UpNextItem(it.title, it.thumbnail) }.orEmpty() }
+
+    // ExoPlayer has no position callbacks: sample it for the overlay
+    if (vod != null) LaunchedEffect(player) {
+        while (true) {
+            position = player.currentPosition / 1000f
+            duration = player.duration.takeIf { it > 0 }?.div(1000f) ?: 0f
+            playing = player.isPlaying
+            delay(250)
+        }
     }
 
     DisposableEffect(player) {
@@ -192,6 +243,7 @@ fun PlayerScreen(
 
     LaunchedEffect(Unit) {
         current?.let(onChannelChanged)
+        episode?.let(onEpisodeChanged)
         load()
         flashInfo()
         runCatching { rootFocus.requestFocus() }
@@ -205,17 +257,14 @@ fun PlayerScreen(
             .onPreviewKeyEvent { ev ->
                 if (showList || ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 if (!isLive) {
-                    // Catch-up: OK play/pause, ◀/▶ seek 10 s; every press reveals the progress bar
-                    val handled = when (ev.key.nativeKeyCode) {
-                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE ->
-                            { if (status is PlayerStatus.Failed) load() else if (player.isPlaying) player.pause() else player.play(); true }
-                        KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> { player.seekBack(); true }
-                        KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { player.seekForward(); true }
-                        KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_INFO -> true
-                        else -> false
+                    val code = ev.key.nativeKeyCode
+                    if (status is PlayerStatus.Failed && controls.row == ArchiveControls.Row.None &&
+                        (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)
+                    ) {
+                        load()
+                        return@onPreviewKeyEvent true
                     }
-                    if (handled) playerView?.showController()
-                    return@onPreviewKeyEvent handled
+                    return@onPreviewKeyEvent controls.onKey(code, ev.nativeKeyEvent.repeatCount, playback, buttons)
                 }
                 when (ev.key.nativeKeyCode) {
                     KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> { zap(-1); true }
@@ -234,17 +283,10 @@ fun PlayerScreen(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     this.player = player
-                    useController = !isLive
+                    useController = false
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     keepScreenOn = true
                     setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
-                    if (!isLive) {
-                        setShowNextButton(false); setShowPreviousButton(false)
-                        controllerShowTimeoutMs = 3_000
-                        // Keys are handled in Compose; the controller is only a display
-                        isFocusable = false; descendantFocusability = android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS
-                    }
-                    playerView = this
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -260,7 +302,7 @@ fun PlayerScreen(
         }
 
         when (val s = status) {
-            PlayerStatus.Loading -> Centered { Message("Се вчитува…", (current?.name ?: (item as? PlaybackItem.Vod)?.episode?.title)) }
+            PlayerStatus.Loading -> Centered { Message("Се вчитува…", (current?.name ?: episode?.title)) }
             PlayerStatus.GeoBlocked -> Centered {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Filled.Lock, null, tint = Palette.Gold, modifier = Modifier.size(44.dp))
@@ -293,22 +335,30 @@ fun PlayerScreen(
                     onClose = { showList = false; scope.launch { delay(50); runCatching { rootFocus.requestFocus() } } },
                 )
             }
-        } else {
-            val vod = item as PlaybackItem.Vod
-            Column(
-                Modifier.align(Alignment.TopStart).fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent)))
-                    .padding(horizontal = Insets.Horizontal, vertical = Insets.Top),
-            ) {
-                Text(vod.show.uppercase(), style = MaterialTheme.typography.labelMedium, color = Palette.Gold)
-                Text(vod.episode.title, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        } else if (vod != null && episode != null) {
+            AnimatedVisibility(controls.visible || !playing, enter = fadeIn(), exit = fadeOut()) {
+                ArchiveOverlay(
+                    controls = controls,
+                    kicker = vod.show,
+                    title = episode.title,
+                    subtitle = null,
+                    position = position,
+                    duration = duration,
+                    buttons = buttons,
+                    items = upNext,
+                    index = vodIndex,
+                )
             }
         }
     }
 
     // Back closes the channel list first, then leaves the player
     androidx.activity.compose.BackHandler {
-        if (showList) { showList = false; scope.launch { delay(50); runCatching { rootFocus.requestFocus() } } } else onExit()
+        when {
+            showList -> { showList = false; scope.launch { delay(50); runCatching { rootFocus.requestFocus() } } }
+            vod != null && controls.back(playback) -> Unit
+            else -> onExit()
+        }
     }
 }
 
@@ -388,7 +438,6 @@ private fun ChannelListPanel(lineup: List<Channel>, currentId: String?, onSelect
                         Spacer(Modifier.width(14.dp))
                         Text(ch.name, style = MaterialTheme.typography.titleMedium, color = if (focused) Palette.Gold else Palette.Text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                         if (ch.id == currentId) LiveDot()
-                        if (ch.mkOnly) Icon(Icons.Filled.Lock, null, tint = Palette.TextDim, modifier = Modifier.padding(start = 8.dp).size(16.dp))
                     }
                 }
             }

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
@@ -65,8 +66,8 @@ import mk.tv.data.YtVideo
 
 /**
  * Plays a station's YouTube video inside the app with YouTube's official embedded player.
- * YouTube's own controls are hidden; the remote drives our overlay: OK play/pause, ◀/▶ 10 s,
- * ▲/▼ previous/next video in the list (and the next one starts automatically at the end).
+ * YouTube's own controls are hidden; the remote drives [ArchiveControls]: OK play/pause and buttons
+ * (incl. "open in YouTube"), ◀/▶ 10 s, ▲ scrubber, ▼ the other videos. The next video starts at the end.
  */
 @Composable
 fun YouTubePlayerScreen(
@@ -88,8 +89,7 @@ fun YouTubePlayerScreen(
     var position by remember { mutableFloatStateOf(0f) }
     var duration by remember { mutableFloatStateOf(0f) }
     var error by remember { mutableStateOf<PlayerConstants.PlayerError?>(null) }
-    var showControls by remember { mutableStateOf(true) }
-    var hideJob by remember { mutableStateOf<Job?>(null) }
+    val controls = remember { ArchiveControls(scope) }
     // YouTube reports "not started" while a pre-roll ad runs; only cover the screen briefly
     var coverLoading by remember { mutableStateOf(true) }
     var coverJob by remember { mutableStateOf<Job?>(null) }
@@ -101,12 +101,6 @@ fun YouTubePlayerScreen(
         coverJob = scope.launch { delay(4_000); coverLoading = false }
     }
 
-    fun flash() {
-        showControls = true
-        hideJob?.cancel()
-        hideJob = scope.launch { delay(4_000); showControls = false }
-    }
-
     fun play(i: Int) {
         if (i !in videos.indices) return
         index = i
@@ -115,7 +109,33 @@ fun YouTubePlayerScreen(
         duration = 0f
         player?.loadVideo(videos[i].id, 0f)
         coverBriefly()
-        flash()
+        controls.show()
+    }
+
+    val setPosition = { s: Float -> position = s }
+    // Outer state seen from inside the object (its own properties shadow the names)
+    val now = { position }
+    val length = { duration }
+    val current = { index }
+    val playback = object : ArchivePlayback {
+        override val position get() = now()
+        override val duration get() = length()
+        override val playing get() = state == PlayerConstants.PlayerState.PLAYING
+        override val index get() = current()
+        override val count get() = videos.size
+        override fun togglePlay() { if (playing) player?.pause() else player?.play() }
+        override fun seekTo(seconds: Float) { player?.seekTo(seconds); setPosition(seconds) }
+        override fun playIndex(i: Int) = play(i)
+    }
+    val buttons = listOf(
+        PlayerButton(
+            if (state == PlayerConstants.PlayerState.PLAYING) "Пауза" else "Пушти",
+            if (state == PlayerConstants.PlayerState.PLAYING) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+        ) { playback.togglePlay() },
+        PlayerButton("Отвори во YouTube", Icons.Filled.OpenInNew) { player?.pause(); onOpenInYoutube(video) },
+    )
+    val items = remember(videos) {
+        videos.map { UpNextItem(it.title, it.thumbnail, listOf(it.duration, it.published).filter(String::isNotBlank).joinToString(" · ")) }
     }
 
     val playerView = remember {
@@ -153,10 +173,10 @@ fun YouTubePlayerScreen(
                 private fun stateSetter(s: PlayerConstants.PlayerState) {
                     state = s
                     if (s == PlayerConstants.PlayerState.ENDED && index < videos.lastIndex) play(index + 1)
-                    if (s == PlayerConstants.PlayerState.PAUSED) showControls = true
+                    if (s == PlayerConstants.PlayerState.PAUSED) controls.show()
                 }
                 private fun durationSetter(d: Float) { duration = d }
-                private fun errorSetter(e: PlayerConstants.PlayerError) { error = e; showControls = true }
+                private fun errorSetter(e: PlayerConstants.PlayerError) { error = e; controls.show() }
             }, true, options)
             // Let the embedded player start on its own: a TV remote never "taps" the web page
             allWebViews(this).forEach { it.settings.mediaPlaybackRequiresUserGesture = false }
@@ -170,9 +190,9 @@ fun YouTubePlayerScreen(
             playerView.release()
         }
     }
-    LaunchedEffect(Unit) { flash(); coverBriefly(); runCatching { rootFocus.requestFocus() } }
+    LaunchedEffect(Unit) { controls.show(); coverBriefly(); runCatching { rootFocus.requestFocus() } }
 
-    BackHandler { onExit(videos[index]) }
+    BackHandler { if (!controls.back(playback)) onExit(videos[index]) }
 
     Box(
         Modifier
@@ -181,25 +201,15 @@ fun YouTubePlayerScreen(
             .focusRequester(rootFocus)
             .onPreviewKeyEvent { ev ->
                 if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                val p = player
-                val handled = when (ev.key.nativeKeyCode) {
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                        when {
-                            error != null -> onOpenInYoutube(video)
-                            state == PlayerConstants.PlayerState.PLAYING -> p?.pause()
-                            else -> p?.play()
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> { p?.seekTo((position - 10f).coerceAtLeast(0f)); true }
-                    KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { p?.seekTo(position + 10f); true }
-                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS, KeyEvent.KEYCODE_CHANNEL_UP -> { play(index - 1); true }
-                    KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_CHANNEL_DOWN -> { play(index + 1); true }
-                    KeyEvent.KEYCODE_INFO, KeyEvent.KEYCODE_MENU -> true
-                    else -> false
+                val code = ev.key.nativeKeyCode
+                // A video that can't play embedded: OK opens it in YouTube
+                if (error != null && controls.row == ArchiveControls.Row.None &&
+                    (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)
+                ) {
+                    onOpenInYoutube(video)
+                    return@onPreviewKeyEvent true
                 }
-                if (handled) flash()
-                handled
+                controls.onKey(code, ev.nativeKeyEvent.repeatCount, playback, buttons)
             }
             .focusable(),
     ) {
@@ -220,47 +230,23 @@ fun YouTubePlayerScreen(
                 Message(
                     if (e == PlayerConstants.PlayerError.VIDEO_NOT_PLAYABLE_IN_EMBEDDED_PLAYER) "Ова видео не може да се пушти тука"
                     else "Видеото моментално не е достапно",
-                    "Притиснете OK за да го отворите во YouTube, или ▲▼ за друго видео.",
+                    "Притиснете OK за да го отворите во YouTube, или ▼ за друго видео.",
                 )
             }
         }
 
-        AnimatedVisibility(showControls || state == PlayerConstants.PlayerState.PAUSED, enter = fadeIn(), exit = fadeOut()) {
-            Box(Modifier.fillMaxSize()) {
-                Column(
-                    Modifier.align(Alignment.TopStart).fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent)))
-                        .padding(horizontal = Insets.Horizontal, vertical = Insets.Top),
-                ) {
-                    Text(station.uppercase(), style = MaterialTheme.typography.labelMedium, color = Palette.Gold)
-                    Text(video.title, style = MaterialTheme.typography.headlineSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    if (video.published.isNotBlank()) Text(video.published, style = MaterialTheme.typography.bodyMedium)
-                }
-                Column(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xEE000000))))
-                        .padding(start = Insets.Horizontal, end = Insets.Horizontal, top = 48.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    ProgressBar(position, duration)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (state == PlayerConstants.PlayerState.PLAYING) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            null, tint = Palette.Text, modifier = Modifier.size(34.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text("${clock(position)} / ${clock(duration)}", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.weight(1f))
-                        Text("${index + 1} / ${videos.size}", style = MaterialTheme.typography.titleMedium, color = Palette.TextDim)
-                        Spacer(Modifier.width(28.dp))
-                        KeyHint("OK", "Пауза")
-                        Spacer(Modifier.width(18.dp))
-                        KeyHint("◀ ▶", "10 сек")
-                        Spacer(Modifier.width(18.dp))
-                        KeyHint("▲ ▼", "Претходно / следно")
-                    }
-                }
-            }
+        AnimatedVisibility(controls.visible || state == PlayerConstants.PlayerState.PAUSED, enter = fadeIn(), exit = fadeOut()) {
+            ArchiveOverlay(
+                controls = controls,
+                kicker = station,
+                title = video.title,
+                subtitle = video.published,
+                position = position,
+                duration = duration,
+                buttons = buttons,
+                items = items,
+                index = index,
+            )
         }
     }
 }
@@ -271,31 +257,4 @@ private fun allWebViews(view: android.view.View): List<android.webkit.WebView> =
     is android.webkit.WebView -> listOf(view)
     is ViewGroup -> (0 until view.childCount).flatMap { allWebViews(view.getChildAt(it)) }
     else -> emptyList()
-}
-
-@Composable
-private fun ProgressBar(position: Float, duration: Float) {
-    val fraction = if (duration > 0f) (position / duration).coerceIn(0f, 1f) else 0f
-    Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0x55FFFFFF))) {
-        Box(Modifier.fillMaxWidth(fraction).height(6.dp).background(Palette.Red))
-    }
-}
-
-@Composable
-private fun KeyHint(key: String, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            key,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.Black,
-            modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Palette.Text).padding(horizontal = 8.dp, vertical = 3.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-private fun clock(seconds: Float): String {
-    val s = seconds.toInt().coerceAtLeast(0)
-    return if (s >= 3600) "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60) else "%d:%02d".format(s / 60, s % 60)
 }
