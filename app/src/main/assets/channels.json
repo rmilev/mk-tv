@@ -1,0 +1,515 @@
+{
+  "version": 2,
+  "channels": [
+    {
+      "id": "mrt1",
+      "name": "МРТ 1",
+      "nameLatin": "МРТ 1",
+      "group": "МРТ",
+      "badge": "МРТ 1",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/mrt1",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": true,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "mrt2",
+      "name": "МРТ 2",
+      "nameLatin": "МРТ 2",
+      "group": "МРТ",
+      "badge": "МРТ 2",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/mrt2",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": true,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "mrt3",
+      "name": "МРТ 3",
+      "nameLatin": "МРТ 3",
+      "group": "МРТ",
+      "badge": "МРТ 3",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/mrt3",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": true,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "mrt4",
+      "name": "МРТ 4",
+      "nameLatin": "МРТ 4",
+      "group": "МРТ",
+      "badge": "МРТ 4",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/mrt4",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": true,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "mrt5",
+      "name": "МРТ 5",
+      "nameLatin": "МРТ 5",
+      "group": "МРТ",
+      "badge": "МРТ 5",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/mrt5",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": true,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "mrt1-sat",
+      "name": "МРТ 1 САТ",
+      "nameLatin": "МРТ 1 САТ",
+      "group": "МРТ",
+      "badge": "МРТ 1 САТ",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/mrt1-sat",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": false,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "mrt2-sat",
+      "name": "МРТ 2 САТ",
+      "nameLatin": "МРТ 2 САТ",
+      "group": "МРТ",
+      "badge": "МРТ 2 САТ",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/mrt2-sat",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": false,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "sobraniski",
+      "name": "Собраниски канал",
+      "nameLatin": "СОБРАНИЕ",
+      "group": "МРТ",
+      "badge": "СОБРАНИЕ",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/sobraniski",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": false,
+      "radio": false,
+      "catchup": {
+        "type": "mrt"
+      }
+    },
+    {
+      "id": "sitel",
+      "name": "Сител",
+      "nameLatin": "Sitel",
+      "group": "Национални",
+      "logo": "https://i.imgur.com/pdobwKt.png",
+      "type": "url",
+      "url": "https://teve.mk/tvstanici/s1/playlist.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UC9S_l5vmdGRDV3GuhvbF8Mg"
+      }
+    },
+    {
+      "id": "kanal-5",
+      "name": "Канал 5",
+      "nameLatin": "Kanal 5",
+      "group": "Национални",
+      "logo": "https://i.imgur.com/Qw7N3S2.png",
+      "type": "url",
+      "url": "https://teve.mk/tvstanici/2/playlist.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCqyOkS9_lPZHB13yfM8b0Zw"
+      }
+    },
+    {
+      "id": "nasa-tv",
+      "name": "Наша ТВ",
+      "nameLatin": "Naša TV",
+      "group": "Национални",
+      "logo": "https://i.imgur.com/9rB4VZy.png",
+      "type": "url",
+      "url": "https://stream.nasatv.com.mk/hls/nasatv_live.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCxTt-F9cCk4LUwej764xe_w"
+      }
+    },
+    {
+      "id": "tv-24",
+      "name": "24 Вести",
+      "nameLatin": "TV 24 (24 Vesti)",
+      "group": "Вести",
+      "logo": "https://i.imgur.com/o5n40jq.png",
+      "type": "url",
+      "url": "https://hls.telekabel.com.mk:1936/live/1/hls.m3u8",
+      "mkOnly": true,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCfKAthZAIoDXQ_RzBb6reNg"
+      }
+    },
+    {
+      "id": "alsat",
+      "name": "Alsat",
+      "nameLatin": "Alsat (Alsat-M)",
+      "group": "На албански",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Logo_of_Alsat_TV_%282020-%29.svg/960px-Logo_of_Alsat_TV_%282020-%29.svg.png",
+      "type": "url",
+      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(Alsat_M)/index.m3u8",
+      "mkOnly": true,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCjHWbpNN6ID61Mq5q4hlEhA"
+      }
+    },
+    {
+      "id": "tv21",
+      "name": "ТВ21",
+      "nameLatin": "TV21",
+      "group": "На албански",
+      "logo": "https://i.imgur.com/IC1f4h3.png",
+      "type": "page",
+      "page": "https://tvmak.com/embed.aspx?id=TV21MK",
+      "pattern": "https://t\\d+\\.tvmak\\.com/tv/[^'\\\"\\s]+\\.m3u8[^'\\\"\\s]*",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCv3j2ZAETAZj6Ey191Vrvow"
+      }
+    },
+    {
+      "id": "tv-shenja",
+      "name": "TV Shenja",
+      "nameLatin": "TV Shenja",
+      "group": "На албански",
+      "logo": "https://i.imgur.com/JsdUpB8.png",
+      "type": "page",
+      "page": "https://tvmak.com/embed.aspx?id=TVSHENJA",
+      "pattern": "https://t\\d+\\.tvmak\\.com/tv/[^'\\\"\\s]+\\.m3u8[^'\\\"\\s]*",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCCy-ElaW0OgPcGMvOzt04jQ"
+      }
+    },
+    {
+      "id": "tv-koha",
+      "name": "TV Koha",
+      "nameLatin": "TV Koha (Tetovë)",
+      "group": "На албански",
+      "logo": "https://i.imgur.com/5V9cusJ.png",
+      "type": "page",
+      "page": "https://tvkoha.tv/",
+      "pattern": "https://t\\d+\\.tvmak\\.com/tv/[^'\\\"\\s]+\\.m3u8[^'\\\"\\s]*",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCjfTi2zL7K6aX7_0EMIBukw"
+      }
+    },
+    {
+      "id": "tv-era",
+      "name": "TV Era",
+      "nameLatin": "TV Era",
+      "group": "На албански",
+      "logo": "https://i.imgur.com/ds0uf7A.png",
+      "type": "url",
+      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(ERA)/index.m3u8",
+      "mkOnly": true
+    },
+    {
+      "id": "kanal-8",
+      "name": "Канал 8",
+      "nameLatin": "Kanal 8",
+      "group": "Регионални",
+      "logo": "https://i.imgur.com/jHbTDhH.png",
+      "type": "url",
+      "url": "https://tv.kanal8.mk/live/kanal8.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCRNm-cpcOsXnxSpZ3hQOHaQ"
+      }
+    },
+    {
+      "id": "mtm",
+      "name": "МТМ",
+      "nameLatin": "MTM",
+      "group": "Регионални",
+      "logo": "https://i.ibb.co/HCRZVVz/images-4.png",
+      "type": "url",
+      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(MTM)/index.m3u8",
+      "mkOnly": true
+    },
+    {
+      "id": "sutel",
+      "name": "Шутел",
+      "nameLatin": "Šutel TV",
+      "group": "Регионални",
+      "logo": "https://i.imgur.com/hk3lhuF.png",
+      "type": "url",
+      "url": "https://vipottbpkstream.vip.hr/Content/onevip-hls/Live/Channel(Shutel)/index.m3u8",
+      "mkOnly": true
+    },
+    {
+      "id": "tv-nova-12",
+      "name": "ТВ Нова 12",
+      "nameLatin": "TV Nova 12",
+      "group": "Регионални",
+      "logo": "https://i.imgur.com/Qo3Hj3t.png",
+      "type": "url",
+      "url": "http://151.236.247.171:8080/nova/index.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UC1eRpFNZyPKcYPFKi-6q5Xw"
+      }
+    },
+    {
+      "id": "tv-zdravkin",
+      "name": "ТВ Здравкин",
+      "nameLatin": "TV Zdravkin",
+      "group": "Регионални",
+      "logo": "https://i.imgur.com/w4rRUNQ.png",
+      "type": "url",
+      "url": "http://zdravkin.hugo.mk:1935/live/zdravkin/playlist.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCld5UzNFUFr7iKcz9jB-PaA"
+      }
+    },
+    {
+      "id": "m-net-hd",
+      "name": "М-Нет HD",
+      "nameLatin": "M-Net HD",
+      "group": "Регионални",
+      "logo": "https://i.imgur.com/HDYqWuR.png",
+      "type": "url",
+      "url": "http://ares.mnet.mk/hls/mnet.m3u8",
+      "mkOnly": true,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCsHDCmlWbM302OZF9Vp7hlQ"
+      }
+    },
+    {
+      "id": "folk-tv",
+      "name": "Folk TV",
+      "nameLatin": "Folk TV",
+      "group": "Музика",
+      "logo": "https://i.imgur.com/4b9aZ9P.png",
+      "type": "url",
+      "url": "https://stream.nasatv.com.mk/folktv/hls/folktv_live.m3u8",
+      "mkOnly": false
+    },
+    {
+      "id": "love-tv",
+      "name": "Love TV",
+      "nameLatin": "Love TV",
+      "group": "Музика",
+      "logo": "https://i.imgur.com/B8iaejQ.png",
+      "type": "url",
+      "url": "https://stream.nasatv.com.mk/lovetv/hls/lovetv_live.m3u8",
+      "mkOnly": false
+    },
+    {
+      "id": "sky-folk",
+      "name": "Sky Folk",
+      "nameLatin": "Sky Folk TV",
+      "group": "Музика",
+      "logo": "https://i.imgur.com/ya5xpUL.png",
+      "type": "url",
+      "url": "https://eu.live.skyfolk.mk/live.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCz69ZZjQ_9TnZPCgfVUQjxQ"
+      }
+    },
+    {
+      "id": "topestrada",
+      "name": "TopEstrada",
+      "nameLatin": "TopEstrada TV",
+      "group": "Музика",
+      "logo": "https://i.imgur.com/0Dh1FJZ.png",
+      "type": "url",
+      "url": "http://live.topestrada.com/live/topestrada/playlist.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCXTYCqNbX8FhbbjwD7eLGTw"
+      }
+    },
+    {
+      "id": "folk-klub",
+      "name": "Фолк Клуб",
+      "nameLatin": "Folk Klub TV",
+      "group": "Музика",
+      "logo": "https://i.imgur.com/Seq7Od7.png",
+      "type": "url",
+      "url": "http://tv1.intv.mk:1935/live2/folkklub/index.m3u8",
+      "mkOnly": false
+    },
+    {
+      "id": "cool-tv",
+      "name": "Cool TV",
+      "nameLatin": "Cool TV",
+      "group": "Останати",
+      "logo": "https://i.imgur.com/2tFrjUz.png",
+      "type": "url",
+      "url": "https://stream.nasatv.com.mk/cooltv/hls/cooltv_live.m3u8",
+      "mkOnly": false
+    },
+    {
+      "id": "m-net-kids",
+      "name": "М-Нет Kids",
+      "nameLatin": "M-Net Kids",
+      "group": "Останати",
+      "logo": "https://i.imgur.com/SbKkpuH.png",
+      "type": "url",
+      "url": "http://ares.mnet.mk/hls/mnet-kids.m3u8",
+      "mkOnly": true
+    },
+    {
+      "id": "m-net-sport",
+      "name": "М-Нет Sport",
+      "nameLatin": "M-Net Sport",
+      "group": "Останати",
+      "logo": "https://i.imgur.com/7k8ar1Z.png",
+      "type": "url",
+      "url": "http://ares.mnet.mk/hls/mnet-sport.m3u8",
+      "mkOnly": true
+    },
+    {
+      "id": "intv-australia",
+      "name": "ИНТВ Австралија",
+      "nameLatin": "INTV Australia",
+      "group": "Останати",
+      "logo": "https://i.imgur.com/1nJl0Pv.png",
+      "type": "url",
+      "url": "http://tv1.intv.mk:1935/live/intv/index.m3u8",
+      "mkOnly": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCCuzgYl28nac7UoYTMQ53YA"
+      }
+    },
+    {
+      "id": "telma",
+      "name": "Телма",
+      "nameLatin": "Telma",
+      "group": "Национални",
+      "logo": "https://i.imgur.com/Fqunp0h.png",
+      "type": "none",
+      "live": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCJRei7E8Nxp80zhh24Cwmqg"
+      }
+    },
+    {
+      "id": "alfa-tv",
+      "name": "Алфа",
+      "nameLatin": "Alfa TV",
+      "group": "Национални",
+      "logo": "https://i.imgur.com/5BSyXfr.png",
+      "type": "none",
+      "live": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCFFwtNtz1XH20tg8DW2-oJQ"
+      }
+    },
+    {
+      "id": "tv-klan-macedonia",
+      "name": "Клан Македонија",
+      "nameLatin": "TV Klan Macedonia",
+      "group": "Национални",
+      "logo": "https://i.imgur.com/tel58lt.png",
+      "type": "none",
+      "live": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCY7BNGbC2Wuse9KtFxt5KEQ"
+      }
+    },
+    {
+      "id": "radio1",
+      "name": "Македонско радио 1",
+      "nameLatin": "МР 1",
+      "group": "МРТ Радио",
+      "badge": "МР 1",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/radio1",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": false,
+      "radio": true
+    },
+    {
+      "id": "radio2",
+      "name": "Македонско радио 2",
+      "nameLatin": "МР 2",
+      "group": "МРТ Радио",
+      "badge": "МР 2",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/radio2",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": false,
+      "radio": true
+    },
+    {
+      "id": "radio3",
+      "name": "Македонско радио 3",
+      "nameLatin": "МР 3",
+      "group": "МРТ Радио",
+      "badge": "МР 3",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/radio3",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": false,
+      "radio": true
+    },
+    {
+      "id": "radio-sat",
+      "name": "Македонско радио САТ",
+      "nameLatin": "МР САТ",
+      "group": "МРТ Радио",
+      "badge": "МР САТ",
+      "type": "page",
+      "page": "https://play.mrt.com.mk/live/radio-sat",
+      "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
+      "mkOnly": false,
+      "radio": true
+    }
+  ]
+}
