@@ -64,7 +64,8 @@ class MainActivity : ComponentActivity() {
                             onToggleFavorite = { vm.toggleFavorite(it.id) },
                             onPlayEpisode = { ep, show -> stack.add(Route.Episode(ep, show)) },
                             onPlayYoutube = { videos, i, station ->
-                                if (youtubeApp) openYoutubeVideo(videos[i]) else stack.add(Route.YouTube(videos, i, station))
+                                // Default: the signed-in YouTube app (Premium, no ads); in-app player when switched off or missing
+                                if (youtubeApp && openYoutubeVideo(videos[i])) Unit else stack.add(Route.YouTube(videos, i, station))
                             },
                             youtubeApp = youtubeApp,
                             onYoutubeApp = vm::setYoutubeApp,
@@ -87,7 +88,7 @@ class MainActivity : ComponentActivity() {
                             videos = route.videos,
                             startIndex = route.index,
                             station = route.station,
-                            onOpenInYoutube = ::openYoutubeVideo,
+                            onOpenInYoutube = { openYoutubeVideo(it) },
                             onExit = { stack.removeAt(stack.lastIndex) },
                         )
                         is Route.Episode -> PlayerScreen(
@@ -107,14 +108,16 @@ class MainActivity : ComponentActivity() {
      * Opens a video in the official YouTube app (signed in, so Premium plays it without ads). Used for the
      * "без реклами" setting and when a video's owner disabled embedding. Back returns to МК ТВ.
      */
-    private fun openYoutubeVideo(video: YtVideo) {
+    private fun openYoutubeVideo(video: YtVideo): Boolean {
         val uri = Uri.parse("https://www.youtube.com/watch?v=${video.id}")
         val tvApp = Intent(Intent.ACTION_VIEW, uri).setPackage("com.google.android.youtube.tv")
         val intent = if (tvApp.resolveActivity(packageManager) != null) tvApp else Intent(Intent.ACTION_VIEW, uri)
-        try {
+        return try {
             startActivity(intent)
+            true
         } catch (e: ActivityNotFoundException) {
             Toast.makeText(this, "Инсталирајте YouTube за ова видео", Toast.LENGTH_LONG).show()
+            false
         }
     }
 }
