@@ -10,7 +10,7 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
 - **Catch-up, all inside the app**:
   - **MRT archive**: browse sections (News, Sport, MRT Production, Documentary, 50 Years of MRT, Promo), then shows, then episodes, with infinite scroll. The archive plays worldwide.
   - **18 private stations from their official YouTube channels**: the latest videos plus the station's playlists as shows (e.g. Sitel → Тема на денот, Kanal 5 → Менуваме животи), with infinite scroll. They play in the app with YouTube's official embedded player and remote controls: OK pause, ◀/▶ seek 10 s, ▲/▼ previous or next video, and the next video starts automatically.
-  - **YouTube Premium (default)**: **Без реклами** (no ads) in Архива is on by default, so videos open in your signed-in YouTube app, ad-free with Premium, and Back returns to МК ТВ. Turn it off to use the in-app player instead.
+  - **YouTube Premium (optional)**: turn on **Без реклами** (no ads) in Архива to open videos in your signed-in YouTube app instead, ad-free with Premium. The YouTube TV app keeps its own history, so Back stays in YouTube; press Home and open МК ТВ to return. Off by default, so videos stay in МК ТВ.
 - **Radio**: MR 1, MR 2, MR 3, MR SAT.
 - **Built for the remote**: D-pad everywhere, a gold focus ring with zoom, a 10-foot layout with overscan-safe margins, and Macedonian labels.
 - **Player**: ▲/▼ or CH+/CH− zap channels, ◀ opens the channel list, OK shows channel info. In catch-up, OK is play/pause and ◀/▶ seek 10 s.

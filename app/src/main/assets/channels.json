@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 6,
   "channels": [
     {
       "id": "mrt1",
@@ -14,7 +14,8 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/mrt1.png"
     },
     {
       "id": "mrt2",
@@ -29,7 +30,9 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/mrt2.png",
+      "albanian": true
     },
     {
       "id": "mrt3",
@@ -44,7 +47,8 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/mrt3.png"
     },
     {
       "id": "mrt4",
@@ -59,7 +63,8 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/mrt4.png"
     },
     {
       "id": "mrt5",
@@ -74,7 +79,8 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/mrt5.png"
     },
     {
       "id": "mrt1-sat",
@@ -89,7 +95,8 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/mrt1-sat.png"
     },
     {
       "id": "mrt2-sat",
@@ -104,7 +111,9 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/mrt2-sat.png",
+      "albanian": true
     },
     {
       "id": "sobraniski",
@@ -119,7 +128,8 @@
       "radio": false,
       "catchup": {
         "type": "mrt"
-      }
+      },
+      "logo": "file:///android_asset/logos/sobraniski.png"
     },
     {
       "id": "sitel",
@@ -187,7 +197,8 @@
         "type": "youtube",
         "youtubeChannelId": "UCjHWbpNN6ID61Mq5q4hlEhA"
       },
-      "live": false
+      "live": false,
+      "albanian": true
     },
     {
       "id": "tv21",
@@ -205,7 +216,8 @@
       },
       "headers": {
         "Referer": "https://mk.tv21.tv/"
-      }
+      },
+      "albanian": true
     },
     {
       "id": "tv-shenja",
@@ -223,7 +235,8 @@
       },
       "headers": {
         "Referer": "https://shenja.tv/"
-      }
+      },
+      "albanian": true
     },
     {
       "id": "tv-koha",
@@ -238,7 +251,8 @@
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCjfTi2zL7K6aX7_0EMIBukw"
-      }
+      },
+      "albanian": true
     },
     {
       "id": "kanal-8",
@@ -341,7 +355,8 @@
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCXTYCqNbX8FhbbjwD7eLGTw"
-      }
+      },
+      "albanian": true
     },
     {
       "id": "folk-klub",
@@ -414,6 +429,20 @@
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCY7BNGbC2Wuse9KtFxt5KEQ"
+      },
+      "albanian": true
+    },
+    {
+      "id": "tera",
+      "name": "Тера",
+      "nameLatin": "TV Tera (Битола)",
+      "group": "Регионални",
+      "logo": "https://tera.mk/wp-content/uploads/2022/02/tera-logo-2x.png",
+      "type": "none",
+      "live": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UC3Ylu4t0w-56mtjiNYJ2djw"
       }
     },
     {
@@ -426,7 +455,8 @@
       "page": "https://play.mrt.com.mk/live/radio1",
       "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
       "mkOnly": false,
-      "radio": true
+      "radio": true,
+      "logo": "file:///android_asset/logos/radio1.png"
     },
     {
       "id": "radio2",
@@ -438,7 +468,8 @@
       "page": "https://play.mrt.com.mk/live/radio2",
       "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
       "mkOnly": false,
-      "radio": true
+      "radio": true,
+      "logo": "file:///android_asset/logos/radio2.png"
     },
     {
       "id": "radio3",
@@ -450,7 +481,8 @@
       "page": "https://play.mrt.com.mk/live/radio3",
       "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
       "mkOnly": false,
-      "radio": true
+      "radio": true,
+      "logo": "file:///android_asset/logos/radio3.png"
     },
     {
       "id": "radio-sat",
@@ -462,7 +494,8 @@
       "page": "https://play.mrt.com.mk/live/radio-sat",
       "pattern": "https://[^\"'\\s<>]+\\.m3u8\\?wmsAuthSign=[A-Za-z0-9=%]+",
       "mkOnly": false,
-      "radio": true
+      "radio": true,
+      "logo": "file:///android_asset/logos/radio-sat.png"
     }
   ]
 }

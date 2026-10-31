@@ -28,6 +28,8 @@ data class Channel(
     /** True when the broadcaster only allows viewers in North Macedonia (needs an MK VPN abroad). */
     val mkOnly: Boolean = false,
     val radio: Boolean = false,
+    /** Albanian-language channel; listed after the Macedonian-language ones. */
+    val albanian: Boolean = false,
     /** False for stations without a public live stream (listed only for their catch-up). */
     val live: Boolean = true,
     val catchup: Catchup? = null,

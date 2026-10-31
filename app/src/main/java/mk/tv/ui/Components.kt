@@ -94,7 +94,7 @@ fun ChannelArt(channel: Channel, modifier: Modifier = Modifier, textSize: Int = 
         modifier
             .background(
                 Brush.linearGradient(
-                    if (channel.group.startsWith("МРТ")) listOf(Palette.Red, Palette.RedDark)
+                    if (channel.logo == null && channel.group.startsWith("МРТ")) listOf(Palette.Red, Palette.RedDark)
                     else listOf(Color(0xFF2A3140), Color(0xFF151922))
                 )
             ),
@@ -145,9 +145,9 @@ fun ChannelCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onFocus: () -> Unit,
-    width: Dp = 200.dp,
+    width: Dp? = 200.dp,
 ) {
-    FocusCard(onClick = onClick, onLongClick = onLongClick, onFocus = onFocus, modifier = Modifier.width(width)) { focused ->
+    FocusCard(onClick = onClick, onLongClick = onLongClick, onFocus = onFocus, modifier = if (width != null) Modifier.width(width) else Modifier.fillMaxWidth()) { focused ->
         Column {
             Box {
                 ChannelArt(channel, Modifier.fillMaxWidth().aspectRatio(16f / 9f))

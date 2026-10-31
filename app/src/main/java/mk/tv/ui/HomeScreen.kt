@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,8 +56,7 @@ fun HomeScreen(
     channels: List<Channel>,
     favorites: Set<String>,
     lastChannelId: String?,
-    tab: Int,
-    onTab: (Int) -> Unit,
+    browse: BrowseState,
     onPlayChannel: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
     onPlayEpisode: (ArchiveEpisode, String) -> Unit,
@@ -62,6 +64,19 @@ fun HomeScreen(
     youtubeApp: Boolean,
     onYoutubeApp: (Boolean) -> Unit,
 ) {
+    val tab = browse.tab
+    val onTab: (Int) -> Unit = browse::selectTab
+    // Only the archive restores a focused list item; elsewhere don't let it grab focus later
+    LaunchedEffect(tab) { if (tab != 1) browse.focusRestored() }
+    // On (re)start Android focuses the first tab, which would switch to "Во живо": ignore focus until the
+    // saved tab has been focused, then let the tab's content restore its own item.
+    val tabRequesters = remember { List(Tabs.size) { FocusRequester() } }
+    var tabsReady by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(150)
+        if (tab != 0) runCatching { tabRequesters[tab].requestFocus() }
+        tabsReady = true
+    }
     Column(Modifier.fillMaxSize()) {
         // Top bar: brand, tabs (switch on focus, like every TV app), clock
         Row(
@@ -86,7 +101,8 @@ fun HomeScreen(
                 Tabs.forEachIndexed { i, title ->
                     Tab(
                         selected = tab == i,
-                        onFocus = { onTab(i) },
+                        onFocus = { if (tabsReady) onTab(i) },
+                        modifier = Modifier.focusRequester(tabRequesters[i]),
                         colors = TabDefaults.pillIndicatorTabColors(
                             contentColor = Palette.TextDim,
                             selectedContentColor = Palette.Text,
@@ -103,9 +119,9 @@ fun HomeScreen(
         }
 
         when (tab) {
-            0 -> ChannelsTab(channels.filter { it.live && !it.radio }, favorites, lastChannelId, onPlayChannel, onToggleFavorite)
-            1 -> ArchiveTab(channels, onPlayEpisode, onPlayYoutube, youtubeApp, onYoutubeApp)
-            else -> ChannelsTab(channels.filter { it.live && it.radio }, favorites, lastChannelId, onPlayChannel, onToggleFavorite)
+            0 -> ChannelsTab(channels.filter { it.live && !it.radio }, favorites, lastChannelId, browse, "tv", onPlayChannel, onToggleFavorite)
+            1 -> ArchiveTab(channels, browse, onPlayEpisode, onPlayYoutube, youtubeApp, onYoutubeApp)
+            else -> ChannelsTab(channels.filter { it.live && it.radio }, favorites, lastChannelId, browse, "radio", onPlayChannel, onToggleFavorite)
         }
     }
 }
@@ -122,12 +138,14 @@ private fun Clock() {
     Text(time, style = MaterialTheme.typography.headlineSmall, color = Palette.TextDim)
 }
 
-/** Live TV / radio: a hero panel for the focused channel above rows grouped by category. */
+/** Live TV / radio: a hero panel for the focused channel above one continuous grid of channels. */
 @Composable
 private fun ChannelsTab(
     channels: List<Channel>,
     favorites: Set<String>,
     lastChannelId: String?,
+    browse: BrowseState,
+    gridKey: String,
     onPlay: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
 ) {
@@ -135,53 +153,43 @@ private fun ChannelsTab(
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Message("Се вчитуваат каналите…") }
         return
     }
-    var focusedChannel by remember(channels) { mutableStateOf(channels.firstOrNull { it.id == lastChannelId } ?: channels.first()) }
-    val rows = remember(channels, favorites) {
-        buildList {
-            val favs = channels.filter { it.id in favorites }
-            if (favs.isNotEmpty()) add("Омилени" to favs)
-            channels.groupBy { it.group }.forEach { (group, list) -> add(group to list) }
-        }
+    // One grid, no category rows: favourites first, Albanian-language channels at the end
+    val ordered = remember(channels, favorites) {
+        channels.withIndex().sortedWith(
+            compareBy({ it.value.id !in favorites }, { it.value.albanian }, { it.index })
+        ).map { it.value }
     }
-    // Return focus to the channel last watched (or the first one) so OK replays it instantly
+    var focusedChannel by remember(channels) { mutableStateOf(ordered.firstOrNull { it.id == lastChannelId } ?: ordered.first()) }
+    val initialId = remember(channels) { ordered.firstOrNull { it.id == lastChannelId }?.id ?: ordered.first().id }
     val initialFocus = remember { FocusRequester() }
-    val initialId = remember(channels) { channels.firstOrNull { it.id == lastChannelId }?.id ?: channels.first().id }
-    var initialRequested by remember(channels) { mutableStateOf(false) }
+    val gridState = browse.gridState(gridKey, ordered.indexOfFirst { it.id == initialId }.coerceAtLeast(0))
+
+    LaunchedEffect(initialId) {
+        val i = ordered.indexOfFirst { it.id == initialId }
+        if (i >= 0) gridState.scrollToItem(i)
+        delay(60)
+        runCatching { initialFocus.requestFocus() }
+    }
 
     Column(Modifier.fillMaxSize()) {
         HeroPanel(focusedChannel, focusedChannel.id in favorites)
-        LazyColumn(
-            contentPadding = PaddingValues(start = Insets.Horizontal - 16.dp, end = 0.dp, top = 8.dp, bottom = 48.dp),
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(5),
+            state = gridState,
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
+            contentPadding = PaddingValues(start = Insets.Horizontal, end = Insets.Horizontal, top = 12.dp, bottom = 48.dp),
         ) {
-            rows.forEachIndexed { rowIndex, (title, list) ->
-                item(key = "row-$title") {
-                    Column {
-                        SectionTitle(title, Modifier.padding(start = 16.dp))
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(20.dp),
-                            contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp),
-                        ) {
-                            items(list, key = { "$title-${it.id}" }) { ch ->
-                                val isInitial = ch.id == initialId && (title != "Омилени" || rows.none { it.first != "Омилени" && it.second.any { c -> c.id == initialId } })
-                                Box(if (isInitial) Modifier.focusRequester(initialFocus) else Modifier) {
-                                    ChannelCard(
-                                        channel = ch,
-                                        favorite = ch.id in favorites,
-                                        onClick = { onPlay(ch) },
-                                        onLongClick = { onToggleFavorite(ch) },
-                                        onFocus = { focusedChannel = ch },
-                                    )
-                                }
-                                if (isInitial && !initialRequested) {
-                                    LaunchedEffect(Unit) {
-                                        runCatching { initialFocus.requestFocus() }
-                                        initialRequested = true
-                                    }
-                                }
-                            }
-                        }
-                    }
+            items(ordered, key = { it.id }) { ch ->
+                Box(if (ch.id == initialId) Modifier.focusRequester(initialFocus) else Modifier) {
+                    ChannelCard(
+                        channel = ch,
+                        favorite = ch.id in favorites,
+                        onClick = { onPlay(ch) },
+                        onLongClick = { onToggleFavorite(ch) },
+                        onFocus = { focusedChannel = ch },
+                        width = null,
+                    )
                 }
             }
         }
@@ -191,12 +199,12 @@ private fun ChannelsTab(
 @Composable
 private fun HeroPanel(channel: Channel, favorite: Boolean) {
     Row(
-        Modifier.fillMaxWidth().height(170.dp).padding(horizontal = Insets.Horizontal, vertical = 8.dp),
+        Modifier.fillMaxWidth().height(140.dp).padding(horizontal = Insets.Horizontal, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ChannelArt(
             channel,
-            Modifier.height(150.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(16.dp)),
+            Modifier.height(124.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(16.dp)),
             textSize = 38,
         )
         Spacer(Modifier.width(32.dp))

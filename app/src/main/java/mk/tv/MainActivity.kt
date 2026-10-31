@@ -48,7 +48,6 @@ class MainActivity : ComponentActivity() {
                 val favorites by vm.favorites.collectAsStateWithLifecycle()
                 val youtubeApp by vm.youtubeApp.collectAsStateWithLifecycle()
                 val stack = remember { mutableStateListOf<Route>(Route.Home) }
-                var tab by rememberSaveable { mutableIntStateOf(0) }
 
                 BackHandler(enabled = stack.size > 1) { stack.removeAt(stack.lastIndex) }
 
@@ -58,13 +57,12 @@ class MainActivity : ComponentActivity() {
                             channels = channels,
                             favorites = favorites,
                             lastChannelId = vm.prefs.lastChannel,
-                            tab = tab,
-                            onTab = { tab = it },
+                            browse = vm.browse,
                             onPlayChannel = { stack.add(Route.Live(it.id)) },
                             onToggleFavorite = { vm.toggleFavorite(it.id) },
                             onPlayEpisode = { ep, show -> stack.add(Route.Episode(ep, show)) },
                             onPlayYoutube = { videos, i, station ->
-                                // Default: the signed-in YouTube app (Premium, no ads); in-app player when switched off or missing
+                                // Default: in-app player (stays in МК ТВ). "Без реклами" hands off to the signed-in YouTube app
                                 if (youtubeApp && openYoutubeVideo(videos[i])) Unit else stack.add(Route.YouTube(videos, i, station))
                             },
                             youtubeApp = youtubeApp,

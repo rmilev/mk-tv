@@ -16,8 +16,11 @@ class Prefs(context: Context) {
 
     /** YouTube Premium: open station videos in the signed-in YouTube app (ad-free) instead of the in-app player. */
     var youtubeApp: Boolean
-        get() = sp.getBoolean("youtube_app", true)
+        get() = sp.getBoolean("youtube_app", false)
         set(value) = sp.edit().putBoolean("youtube_app", value).apply()
+
+    fun getString(key: String): String? = sp.getString(key, null)
+    fun putString(key: String, value: String?) = sp.edit().putString(key, value).apply()
 
     fun toggleFavorite(id: String): Set<String> {
         val updated = favorites.toMutableSet().apply { if (!add(id)) remove(id) }

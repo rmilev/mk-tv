@@ -13,6 +13,8 @@ import mk.tv.data.Prefs
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = ChannelRepository(app)
     val prefs = Prefs(app)
+    /** Where the viewer is (tab, archive section, show, focused item); survives leaving the app. */
+    val browse = BrowseState(prefs)
 
     private val _channels = MutableStateFlow<List<Channel>>(emptyList())
     val channels: StateFlow<List<Channel>> = _channels
