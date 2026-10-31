@@ -1,5 +1,22 @@
 package mk.tv.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.tv.material3.DrawerValue
+import androidx.tv.material3.Icon
+import androidx.tv.material3.NavigationDrawer
+import androidx.tv.material3.NavigationDrawerItem
+import androidx.tv.material3.NavigationDrawerItemDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,10 +52,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Tab
-import androidx.tv.material3.TabDefaults
-import androidx.tv.material3.TabRow
-import androidx.tv.material3.TabRowDefaults
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
 import mk.tv.data.ArchiveEpisode
@@ -48,9 +61,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Tabs = listOf("Во живо", "Архива", "Радио")
+private data class Section(val title: String, val icon: ImageVector)
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+private val Sections = listOf(
+    Section("Во живо", Icons.Filled.LiveTv),
+    Section("Архива", Icons.Filled.VideoLibrary),
+    Section("Радио", Icons.Filled.Radio),
+)
+
+/**
+ * Home: a slim icon menu on the left (expands with labels when focused) and the selected section's
+ * content to its right. Everything navigates left/right; nothing sits above the content, so holding
+ * ▲ simply stops at the top instead of jumping between sections.
+ */
+@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun HomeScreen(
     channels: List<Channel>,
@@ -65,63 +89,63 @@ fun HomeScreen(
     onYoutubeApp: (Boolean) -> Unit,
 ) {
     val tab = browse.tab
-    val onTab: (Int) -> Unit = browse::selectTab
     // Only the archive restores a focused list item; elsewhere don't let it grab focus later
     LaunchedEffect(tab) { if (tab != 1) browse.focusRestored() }
-    // On (re)start Android focuses the first tab, which would switch to "Во живо": ignore focus until the
-    // saved tab has been focused, then let the tab's content restore its own item.
-    val tabRequesters = remember { List(Tabs.size) { FocusRequester() } }
-    var tabsReady by remember { mutableStateOf(false) }
+    // Focus target for the archive when the app starts there with nothing to restore
+    val archiveEntry = remember { FocusRequester() }
+    val sectionFocus = remember { List(Sections.size) { FocusRequester() } }
     LaunchedEffect(Unit) {
-        delay(150)
-        if (tab != 0) runCatching { tabRequesters[tab].requestFocus() }
-        tabsReady = true
+        if (tab == 1) browse.consumeLiveRestore()
+        // If a list item is about to be restored (returning from a video), leave focus to it
+        val restoring = browse.pendingRestoreKey() != null
+        delay(250)
+        if (tab == 1 && !restoring) runCatching { archiveEntry.requestFocus() }
     }
-    Column(Modifier.fillMaxSize()) {
-        // Top bar: brand, tabs (switch on focus, like every TV app), clock
-        Row(
-            Modifier.fillMaxWidth().padding(start = Insets.Horizontal, end = Insets.Horizontal, top = Insets.Top, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SunMark()
-            Spacer(Modifier.width(12.dp))
-            Text("МК ТВ", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Spacer(Modifier.width(36.dp))
-            TabRow(
-                selectedTabIndex = tab,
-                indicator = { tabPositions, doesTabRowHaveFocus ->
-                    TabRowDefaults.PillIndicator(
-                        currentTabPosition = tabPositions[tab],
-                        doesTabRowHaveFocus = doesTabRowHaveFocus,
-                        activeColor = Palette.Gold,
-                        inactiveColor = Palette.SurfaceHigh,
-                    )
-                },
+
+    NavigationDrawer(
+        drawerContent = { drawer ->
+            Column(
+                Modifier.fillMaxHeight().background(Palette.Background).padding(horizontal = 12.dp, vertical = Insets.Top)
+                    // ◀ from the content always lands on the current section, never a neighbour
+                    .focusProperties { enter = { sectionFocus[tab] } }
+                    .focusGroup(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Tabs.forEachIndexed { i, title ->
-                    Tab(
+                Row(Modifier.padding(start = 6.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SunMark(36.dp)
+                    if (drawer == DrawerValue.Open) {
+                        Spacer(Modifier.width(12.dp))
+                        Text("МК ТВ", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+                Sections.forEachIndexed { i, section ->
+                    NavigationDrawerItem(
                         selected = tab == i,
-                        onFocus = { if (tabsReady) onTab(i) },
-                        modifier = Modifier.focusRequester(tabRequesters[i]),
-                        colors = TabDefaults.pillIndicatorTabColors(
-                            contentColor = Palette.TextDim,
+                        onClick = { browse.selectTab(i) },
+                        // Switch section as soon as an item is focused, like the rest of the app
+                        modifier = Modifier.focusRequester(sectionFocus[i]).onFocusChanged { if (it.isFocused) browse.selectTab(i) },
+                        leadingContent = { Icon(section.icon, contentDescription = section.title) },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            focusedContainerColor = Palette.Gold,
+                            focusedContentColor = Color.Black,
+                            selectedContainerColor = Palette.SurfaceHigh,
                             selectedContentColor = Palette.Text,
-                            focusedContentColor = androidx.compose.ui.graphics.Color.Black,
-                            focusedSelectedContentColor = androidx.compose.ui.graphics.Color.Black,
+                            contentColor = Palette.TextDim,
                         ),
                     ) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp))
+                        Text(section.title, style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
-            Spacer(Modifier.weight(1f))
-            Clock()
-        }
-
-        when (tab) {
-            0 -> ChannelsTab(channels.filter { it.live && !it.radio }, favorites, lastChannelId, browse, "tv", onPlayChannel, onToggleFavorite)
-            1 -> ArchiveTab(channels, browse, onPlayEpisode, onPlayYoutube, youtubeApp, onYoutubeApp)
-            else -> ChannelsTab(channels.filter { it.live && it.radio }, favorites, lastChannelId, browse, "radio", onPlayChannel, onToggleFavorite)
+        },
+    ) {
+        Box(Modifier.fillMaxSize().padding(start = 24.dp)) {
+            when (tab) {
+                0 -> ChannelsTab(channels.filter { it.live && !it.radio }, favorites, lastChannelId, browse, "tv", onPlayChannel, onToggleFavorite)
+                1 -> ArchiveTab(channels, browse, archiveEntry, onPlayEpisode, onPlayYoutube, youtubeApp, onYoutubeApp)
+                else -> ChannelsTab(channels.filter { it.live && it.radio }, favorites, lastChannelId, browse, "radio", onPlayChannel, onToggleFavorite)
+            }
+            Box(Modifier.align(Alignment.TopEnd).padding(top = Insets.Top, end = Insets.Horizontal)) { Clock() }
         }
     }
 }
@@ -167,8 +191,10 @@ private fun ChannelsTab(
     LaunchedEffect(initialId) {
         val i = ordered.indexOfFirst { it.id == initialId }
         if (i >= 0) gridState.scrollToItem(i)
-        delay(60)
-        runCatching { initialFocus.requestFocus() }
+        if (browse.consumeLiveRestore()) {
+            delay(60)
+            runCatching { initialFocus.requestFocus() }
+        }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -178,14 +204,14 @@ private fun ChannelsTab(
             state = gridState,
             horizontalArrangement = Arrangement.spacedBy(18.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
-            contentPadding = PaddingValues(start = Insets.Horizontal, end = Insets.Horizontal, top = 12.dp, bottom = 48.dp),
+            contentPadding = PaddingValues(start = 8.dp, end = Insets.Horizontal, top = 12.dp, bottom = 48.dp),
         ) {
             items(ordered, key = { it.id }) { ch ->
                 Box(if (ch.id == initialId) Modifier.focusRequester(initialFocus) else Modifier) {
                     ChannelCard(
                         channel = ch,
                         favorite = ch.id in favorites,
-                        onClick = { onPlay(ch) },
+                        onClick = { browse.requestLiveRestore(); onPlay(ch) },
                         onLongClick = { onToggleFavorite(ch) },
                         onFocus = { focusedChannel = ch },
                         width = null,
@@ -199,7 +225,7 @@ private fun ChannelsTab(
 @Composable
 private fun HeroPanel(channel: Channel, favorite: Boolean) {
     Row(
-        Modifier.fillMaxWidth().height(140.dp).padding(horizontal = Insets.Horizontal, vertical = 6.dp),
+        Modifier.fillMaxWidth().height(150.dp).padding(start = 8.dp, end = Insets.Horizontal, top = Insets.Top, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ChannelArt(

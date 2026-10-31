@@ -72,6 +72,18 @@ class BrowseState(private val prefs: Prefs) {
     private var restorePending by mutableStateOf(true)
 
     fun requestFocusRestore() { restorePending = true }
+
+    /** After a player, focus [itemKey] (e.g. the last video watched after ▲▼ in the player). */
+    fun returnTo(itemKey: String) {
+        focusKey = itemKey
+        prefs.putString(K_FOCUS, itemKey)
+        restorePending = true
+    }
+
+    /** Live/radio grid: focus the last channel at app start and after returning from a channel only. */
+    private var liveRestorePending = true
+    fun requestLiveRestore() { liveRestorePending = true }
+    fun consumeLiveRestore(): Boolean = liveRestorePending.also { liveRestorePending = false }
     fun pendingRestoreKey(): String? = if (restorePending) focusKey else null
     fun focusRestored() { restorePending = false }
 

@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
                             startIndex = route.index,
                             station = route.station,
                             onOpenInYoutube = { openYoutubeVideo(it) },
-                            onExit = { stack.removeAt(stack.lastIndex) },
+                            onExit = { last -> vm.browse.returnTo("yt:${last.id}"); stack.removeAt(stack.lastIndex) },
                         )
                         is Route.Episode -> PlayerScreen(
                             item = PlaybackItem.Vod(route.episode, route.show),

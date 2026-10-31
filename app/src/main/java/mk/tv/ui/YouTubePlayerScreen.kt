@@ -74,7 +74,8 @@ fun YouTubePlayerScreen(
     startIndex: Int,
     station: String,
     onOpenInYoutube: (YtVideo) -> Unit,
-    onExit: () -> Unit,
+    /** Called with the video on screen when leaving, so the list can focus it. */
+    onExit: (YtVideo) -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -171,7 +172,7 @@ fun YouTubePlayerScreen(
     }
     LaunchedEffect(Unit) { flash(); coverBriefly(); runCatching { rootFocus.requestFocus() } }
 
-    BackHandler { onExit() }
+    BackHandler { onExit(videos[index]) }
 
     Box(
         Modifier

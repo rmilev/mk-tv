@@ -1,6 +1,21 @@
 package mk.tv.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyCode
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,14 +66,16 @@ import mk.tv.data.YtPlaylist
 import mk.tv.data.YtVideo
 
 /**
- * Catch-up: MRT's own archive (sections -> shows -> episodes) and the private stations' official
- * YouTube channels (latest + playlists). Episodes are shown as a readable list. Where the viewer
- * was (section, show, scroll, focused item) lives in [BrowseState], so it survives playing a video.
+ * Catch-up, navigated left to right: sources (MRT sections, then stations) | that source's shows
+ * ("Најново" + shows/playlists) | the episode list. Both menus switch on focus. When the list has
+ * focus the two menus tuck away so titles get the full width; ◀ from the list brings them back.
+ * Where the viewer was lives in [BrowseState], so it survives playing a video or an app restart.
  */
 @Composable
 fun ArchiveTab(
     channels: List<Channel>,
     browse: BrowseState,
+    entryFocus: FocusRequester,
     onPlayEpisode: (ArchiveEpisode, String) -> Unit,
     onPlayYoutube: (List<YtVideo>, Int, String) -> Unit,
     youtubeApp: Boolean,
@@ -69,50 +86,160 @@ fun ArchiveTab(
         channels.filter { it.catchup?.type == "youtube" && it.catchup.youtubeChannelId != null }.sortedBy { it.albanian }
     }
     val source = browse.archiveSource
+    val scope = rememberCoroutineScope()
+    var listFocused by remember { mutableStateOf(false) }
+    val showFocus = remember { FocusRequester() }
 
-    Row(Modifier.fillMaxSize().padding(start = Insets.Horizontal, top = 8.dp)) {
-        // Left menu: switches content on focus, so browsing needs no extra clicks
-        // Menu rows: header, MRT sections, header, stations, ... (open scrolled to the selected one)
-        val selectedRow = MrtArchive.sections.indexOfFirst { source == "mrt:${it.id}" }.takeIf { it >= 0 }?.plus(1)
-            ?: youtubeChannels.indexOfFirst { source == "yt:${it.catchup?.youtubeChannelId}" }.takeIf { it >= 0 }
-                ?.plus(MrtArchive.sections.size + 2) ?: 0
-        val menuState = browse.listState("archive-menu")
-        LaunchedEffect(selectedRow) {
-            val info = menuState.layoutInfo
-            val fullyVisible = info.visibleItemsInfo.any {
-                it.index == selectedRow && it.offset >= info.viewportStartOffset && it.offset + it.size <= info.viewportEndOffset
-            }
-            if (selectedRow > 0 && !fullyVisible) menuState.scrollToItem((selectedRow - 3).coerceAtLeast(0))
-        }
-        LazyColumn(
-            Modifier.width(250.dp).fillMaxHeight(),
-            state = menuState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 8.dp),
-        ) {
-            item { MenuHeader("МРТ архива") }
-            items(MrtArchive.sections, key = { it.id }) { s ->
-                MenuItem(s.title, selected = source == "mrt:${s.id}", onSelect = { browse.selectSource("mrt:${s.id}") })
-            }
-            if (youtubeChannels.isNotEmpty()) {
-                item { Spacer(Modifier.height(12.dp)); MenuHeader("Други станици") }
-                items(youtubeChannels, key = { "yt-${it.id}" }) { ch ->
-                    val key = "yt:${ch.catchup!!.youtubeChannelId}"
-                    MenuItem(ch.name, selected = source == key, onSelect = { browse.selectSource(key) })
-                }
-                item { Spacer(Modifier.height(12.dp)); MenuHeader("YouTube Premium") }
-                item { PremiumToggle(youtubeApp, onYoutubeApp) }
-            }
-        }
-        Spacer(Modifier.width(28.dp))
-        Box(Modifier.weight(1f).fillMaxHeight()) {
+    // Shows of the current source: MRT shows, or the station's YouTube playlists ("" = Најново)
+    val mrtSection = source.removePrefix("mrt:").toIntOrNull().takeIf { source.startsWith("mrt:") }
+    val ytChannel = youtubeChannels.firstOrNull { "yt:${it.catchup?.youtubeChannelId}" == source }
+    var shows by remember(source) { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    LaunchedEffect(source, ytChannel) {
+        shows = runCatching {
             when {
-                source.startsWith("yt:") -> youtubeChannels.firstOrNull { "yt:${it.catchup?.youtubeChannelId}" == source }
-                    ?.let { YouTubeStation(it, browse, onPlayYoutube) }
-                else -> MrtSection(source.removePrefix("mrt:").toIntOrNull() ?: MrtArchive.sections.first().id, browse, onPlayEpisode)
+                mrtSection != null -> MrtArchive.shows(mrtSection).map { it.id.toString() to it.title }
+                ytChannel != null -> YouTubeArchive.playlists(ytChannel.catchup!!.youtubeChannelId!!).map { it.id to it.title }
+                else -> emptyList()
+            }
+        }.getOrDefault(emptyList())
+    }
+    val latestKey = mrtSection?.toString() ?: ""
+    val selectedShow = browse.selection(source) ?: latestKey
+
+    Row(Modifier.fillMaxSize().padding(top = Insets.Top + 8.dp)) {
+        AnimatedVisibility(
+            visible = !listFocused,
+            enter = expandHorizontally() + fadeIn(),
+            exit = shrinkHorizontally() + fadeOut(),
+        ) {
+            Row {
+                SourcesColumn(youtubeChannels, browse, entryFocus, youtubeApp, onYoutubeApp)
+                Spacer(Modifier.width(14.dp))
+                ShowsColumn(
+                    source = source,
+                    items = listOf(latestKey to "Најново") + shows,
+                    selected = selectedShow,
+                    browse = browse,
+                    selectedFocus = showFocus,
+                )
+            }
+        }
+        Spacer(Modifier.width(18.dp))
+        Box(
+            // starts below the clock in the top-right corner
+            Modifier.weight(1f).fillMaxHeight().padding(top = 40.dp)
+                .onFocusChanged { listFocused = it.hasFocus }
+                .onPreviewKeyEvent { ev ->
+                    // ◀ from the list goes back to the shows menu (and brings the menus back)
+                    if (ev.type == KeyEventType.KeyDown && ev.key.nativeKeyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                        listFocused = false
+                        scope.launch { delay(80); runCatching { showFocus.requestFocus() } }
+                        true
+                    } else false
+                },
+        ) {
+            val wide = listFocused
+            when {
+                mrtSection != null -> {
+                    val category = selectedShow.toIntOrNull() ?: mrtSection
+                    val title = shows.firstOrNull { it.first == category.toString() }?.second
+                        ?: MrtArchive.sections.firstOrNull { it.id == mrtSection }?.title.orEmpty()
+                    EpisodeList(category, browse, wide, onPlay = { onPlayEpisode(it, title) })
+                }
+                ytChannel != null -> VideoList(
+                    ytChannel.catchup!!.youtubeChannelId!!, selectedShow.ifEmpty { null }, browse, wide,
+                    onPlay = { videos, i -> onPlayYoutube(videos, i, ytChannel.name) },
+                )
             }
         }
     }
+}
+
+/** Column 1: MRT sections, then the stations (Albanian-language last), then the Premium switch. */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun SourcesColumn(
+    youtubeChannels: List<Channel>,
+    browse: BrowseState,
+    entryFocus: FocusRequester,
+    youtubeApp: Boolean,
+    onYoutubeApp: (Boolean) -> Unit,
+) {
+    val source = browse.archiveSource
+    val selectedRow = MrtArchive.sections.indexOfFirst { source == "mrt:${it.id}" }.takeIf { it >= 0 }?.plus(1)
+        ?: youtubeChannels.indexOfFirst { source == "yt:${it.catchup?.youtubeChannelId}" }.takeIf { it >= 0 }
+            ?.plus(MrtArchive.sections.size + 2) ?: 0
+    val menuState = browse.listState("archive-menu")
+    LaunchedEffect(selectedRow) { scrollIntoView(menuState, selectedRow) }
+    LazyColumn(
+        // Entering the column (▶ from the main menu, ◀ from shows) lands on the selected source
+        Modifier.width(210.dp).fillMaxHeight().focusProperties { enter = { entryFocus } }.focusGroup(),
+        state = menuState,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
+    ) {
+        item { MenuHeader("МРТ архива") }
+        items(MrtArchive.sections, key = { it.id }) { s ->
+            val key = "mrt:${s.id}"
+            MenuItem(
+                s.title, selected = source == key, onSelect = { browse.selectSource(key) },
+                modifier = if (source == key) Modifier.focusRequester(entryFocus) else Modifier,
+            )
+        }
+        if (youtubeChannels.isNotEmpty()) {
+            item { Spacer(Modifier.height(10.dp)); MenuHeader("Други станици") }
+            items(youtubeChannels, key = { "yt-${it.id}" }) { ch ->
+                val key = "yt:${ch.catchup!!.youtubeChannelId}"
+                MenuItem(
+                    ch.name, selected = source == key, onSelect = { browse.selectSource(key) },
+                    modifier = if (source == key) Modifier.focusRequester(entryFocus) else Modifier,
+                )
+            }
+            item { Spacer(Modifier.height(10.dp)); MenuHeader("YouTube Premium") }
+            item { PremiumToggle(youtubeApp, onYoutubeApp) }
+        }
+    }
+}
+
+/** Column 2: the selected source's shows / playlists, vertically so long lists stay easy to scroll. */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun ShowsColumn(
+    source: String,
+    items: List<Pair<String, String>>,
+    selected: String,
+    browse: BrowseState,
+    selectedFocus: FocusRequester,
+) {
+    val state = browse.listState("shows:$source")
+    val selectedIndex = items.indexOfFirst { it.first == selected }
+    LaunchedEffect(source, selectedIndex) { scrollIntoView(state, selectedIndex + 1) }
+    LazyColumn(
+        // Entering the column lands on the selected show, never on a neighbour
+        Modifier.width(240.dp).fillMaxHeight().focusProperties { enter = { selectedFocus } }.focusGroup(),
+        state = state,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
+    ) {
+        item { MenuHeader("Емисии") }
+        items(items, key = { it.first }) { (key, title) ->
+            MenuItem(
+                title, selected = key == selected, onSelect = { browse.select(source, key) },
+                modifier = if (key == selected) Modifier.focusRequester(selectedFocus) else Modifier,
+                maxLines = 2,
+            )
+        }
+    }
+}
+
+/** Scrolls [row] into view only if it isn't already fully visible (so browsing never jumps). */
+private suspend fun scrollIntoView(state: androidx.compose.foundation.lazy.LazyListState, row: Int) {
+    if (row <= 0) return
+    val info = state.layoutInfo
+    val fullyVisible = info.visibleItemsInfo.any {
+        it.index == row && it.offset >= info.viewportStartOffset && it.offset + it.size <= info.viewportEndOffset
+    }
+    if (!fullyVisible) state.scrollToItem((row - 3).coerceAtLeast(0))
 }
 
 /** With Premium, videos open in the signed-in YouTube app (no ads); Back returns here. */
@@ -160,11 +287,11 @@ private fun MenuHeader(text: String) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun MenuItem(title: String, selected: Boolean, onSelect: () -> Unit) {
+private fun MenuItem(title: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier, maxLines: Int = 1) {
     var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = onSelect,
-        modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused; if (it.isFocused) onSelect() },
+        modifier = modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused; if (it.isFocused) onSelect() },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
         colors = ClickableSurfaceDefaults.colors(
@@ -180,38 +307,15 @@ private fun MenuItem(title: String, selected: Boolean, onSelect: () -> Unit) {
                 selected -> Palette.Text
                 else -> Palette.TextDim
             },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
         )
     }
 }
 
-/** Shows of one MRT section as chips, then a paged list of episodes. */
 @Composable
-private fun MrtSection(sectionId: Int, browse: BrowseState, onPlayEpisode: (ArchiveEpisode, String) -> Unit) {
-    val sourceKey = "mrt:$sectionId"
-    val sectionTitle = MrtArchive.sections.firstOrNull { it.id == sectionId }?.title.orEmpty()
-    var shows by remember(sectionId) { mutableStateOf<List<ArchiveShow>>(emptyList()) }
-    LaunchedEffect(sectionId) { shows = runCatching { MrtArchive.shows(sectionId) }.getOrDefault(emptyList()) }
-    val category = browse.selection(sourceKey)?.toIntOrNull() ?: sectionId
-
-    Column(Modifier.fillMaxSize()) {
-        if (shows.isNotEmpty()) {
-            LazyRow(
-                state = browse.listState("chips:$sourceKey"),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 14.dp, end = Insets.Horizontal),
-            ) {
-                item(key = "all") { Chip("Најново", category == sectionId) { browse.select(sourceKey, sectionId.toString()) } }
-                items(shows, key = { it.id }) { show -> Chip(show.title, category == show.id) { browse.select(sourceKey, show.id.toString()) } }
-            }
-        }
-        val showTitle = shows.firstOrNull { it.id == category }?.title ?: sectionTitle
-        EpisodeList(category, browse, onPlay = { onPlayEpisode(it, showTitle) })
-    }
-}
-
-@Composable
-private fun EpisodeList(categoryId: Int, browse: BrowseState, onPlay: (ArchiveEpisode) -> Unit) {
+private fun EpisodeList(categoryId: Int, browse: BrowseState, wide: Boolean, onPlay: (ArchiveEpisode) -> Unit) {
     val listKey = "mrt-list:$categoryId"
     val data = browse.episodes(categoryId)
 
@@ -245,6 +349,7 @@ private fun EpisodeList(categoryId: Int, browse: BrowseState, onPlay: (ArchiveEp
             title = ep.title,
             subtitle = null,
             badge = null,
+            wide = wide,
             modifier = focusModifier,
             onFocus = { browse.focus(listKey, "ep:${ep.id}", i) },
             onClick = { browse.requestFocusRestore(); onPlay(ep) },
@@ -252,30 +357,8 @@ private fun EpisodeList(categoryId: Int, browse: BrowseState, onPlay: (ArchiveEp
     }
 }
 
-/** One station's YouTube catch-up: "Најново" plus its playlists (shows) as chips, then a paged list. */
 @Composable
-private fun YouTubeStation(channel: Channel, browse: BrowseState, onPlay: (List<YtVideo>, Int, String) -> Unit) {
-    val channelId = channel.catchup?.youtubeChannelId ?: return
-    val sourceKey = "yt:$channelId"
-    var playlists by remember(channelId) { mutableStateOf<List<YtPlaylist>>(emptyList()) }
-    LaunchedEffect(channelId) { playlists = runCatching { YouTubeArchive.playlists(channelId) }.getOrDefault(emptyList()) }
-    val listId = browse.selection(sourceKey)?.ifEmpty { null }
-
-    Column(Modifier.fillMaxSize()) {
-        LazyRow(
-            state = browse.listState("chips:$sourceKey"),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 14.dp, end = Insets.Horizontal),
-        ) {
-            item(key = "latest") { Chip("Најново", listId == null) { browse.select(sourceKey, "") } }
-            items(playlists, key = { it.id }) { pl -> Chip(pl.title, listId == pl.id) { browse.select(sourceKey, pl.id) } }
-        }
-        VideoList(channelId, listId, browse, onPlay = { videos, i -> onPlay(videos, i, channel.name) })
-    }
-}
-
-@Composable
-private fun VideoList(channelId: String, listId: String?, browse: BrowseState, onPlay: (List<YtVideo>, Int) -> Unit) {
+private fun VideoList(channelId: String, listId: String?, browse: BrowseState, wide: Boolean, onPlay: (List<YtVideo>, Int) -> Unit) {
     val dataKey = listId ?: channelId
     val listKey = "yt-list:$dataKey"
     val data = browse.videos(dataKey)
@@ -314,6 +397,7 @@ private fun VideoList(channelId: String, listId: String?, browse: BrowseState, o
             title = v.title,
             subtitle = v.published,
             badge = v.duration,
+            wide = wide,
             modifier = focusModifier,
             onFocus = { browse.focus(listKey, "yt:${v.id}", i) },
             onClick = { browse.requestFocusRestore(); onPlay(data.items.toList(), i) },
@@ -388,6 +472,7 @@ private fun ArchiveRow(
     title: String,
     subtitle: String?,
     badge: String?,
+    wide: Boolean,
     modifier: Modifier,
     onFocus: () -> Unit,
     onClick: () -> Unit,
@@ -404,7 +489,7 @@ private fun ArchiveRow(
         ),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(192.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)).background(Palette.SurfaceHigh)) {
+            Box(Modifier.width(if (wide) 192.dp else 128.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)).background(Palette.SurfaceHigh)) {
                 SubcomposeAsyncImage(
                     model = thumbnail,
                     contentDescription = null,
@@ -423,7 +508,7 @@ private fun ArchiveRow(
                     title,
                     style = MaterialTheme.typography.titleMedium,
                     color = if (focused) Palette.Gold else Palette.Text,
-                    maxLines = 2,
+                    maxLines = if (wide) 2 else 3,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (!subtitle.isNullOrBlank()) {
@@ -431,30 +516,5 @@ private fun ArchiveRow(
                 }
             }
         }
-    }
-}
-
-/** Show / playlist chip: selects as soon as it gets focus, so the list loads without pressing OK. */
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun Chip(text: String, selected: Boolean, onSelect: () -> Unit) {
-    var focused by remember { mutableStateOf(false) }
-    Surface(
-        onClick = onSelect,
-        modifier = Modifier.onFocusChanged { focused = it.isFocused; if (it.isFocused) onSelect() },
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
-        colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Palette.Red else Palette.Surface,
-            focusedContainerColor = Palette.Gold,
-        ),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.titleSmall,
-            color = if (focused) androidx.compose.ui.graphics.Color.Black else Palette.Text,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
-        )
     }
 }
