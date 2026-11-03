@@ -98,7 +98,7 @@ private sealed interface PlayerStatus {
 }
 
 /**
- * Full-screen player. Live: ▲/▼ (or CH+/CH−) zap, ◀ opens the channel list, OK shows info.
+ * Full-screen player. Live: ▲/▼ (or CH+/CH−) zap, ◀ opens the channel list, OK pauses/resumes (and shows info).
  * Catch-up: [ArchiveControls] (OK play/pause, ◀/▶ or ▲ scrubber, ▼ the show's other episodes).
  */
 @OptIn(UnstableApi::class)
@@ -132,6 +132,8 @@ fun PlayerScreen(
     var position by remember { mutableFloatStateOf(0f) }
     var duration by remember { mutableFloatStateOf(0f) }
     var playing by remember { mutableStateOf(false) }
+    // Live pause is user intent (playWhenReady), not "not playing yet" while buffering
+    var livePaused by remember { mutableStateOf(false) }
 
     fun flashInfo() {
         showInfo = true
@@ -164,6 +166,7 @@ fun PlayerScreen(
     fun tune(channel: Channel) {
         current = channel
         retried = false
+        player.playWhenReady = true
         onChannelChanged(channel)
         player.stop()
         load()
@@ -175,6 +178,12 @@ fun PlayerScreen(
         if (lineup.isEmpty()) return
         val i = lineup.indexOfFirst { it.id == ch.id }.coerceAtLeast(0)
         tune(lineup[(i + step + lineup.size) % lineup.size])
+    }
+
+    // Resumes where it was paused while the stream still holds that moment, otherwise at the live edge
+    fun toggleLivePause() {
+        if (player.playWhenReady) player.pause() else player.play()
+        flashInfo()
     }
 
     fun playEpisode(i: Int) {
@@ -241,6 +250,10 @@ fun PlayerScreen(
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                livePaused = !playWhenReady
+            }
+
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY) status = PlayerStatus.Playing
                 if (state == Player.STATE_BUFFERING && status !is PlayerStatus.Playing) status = PlayerStatus.Loading
@@ -251,6 +264,8 @@ fun PlayerScreen(
                 // Some MK-only servers answer foreign viewers with an HTML "403" page and status 200
                 val blockPage = error.cause is androidx.media3.common.ParserException && current?.mkOnly == true
                 when {
+                    // Paused longer than the stream's rewind window: jump to the live edge
+                    error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW -> { player.seekToDefaultPosition(); player.prepare() }
                     code == 403 || code == 451 || blockPage -> status = PlayerStatus.GeoBlocked
                     // Signed links can expire mid-session: fetch a fresh one once
                     !retried && current?.type == "page" -> { retried = true; load(fresh = true) }
@@ -294,10 +309,13 @@ fun PlayerScreen(
                     KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> { zap(-1); true }
                     KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> { zap(1); true }
                     KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MENU -> { showList = true; true }
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_INFO -> {
-                        if (status is PlayerStatus.GeoBlocked || status is PlayerStatus.Failed) { retried = false; load(fresh = true) } else flashInfo()
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                        if (status is PlayerStatus.GeoBlocked || status is PlayerStatus.Failed) { retried = false; load(fresh = true) } else toggleLivePause()
                         true
                     }
+                    KeyEvent.KEYCODE_MEDIA_PAUSE -> { if (player.playWhenReady) toggleLivePause(); true }
+                    KeyEvent.KEYCODE_MEDIA_PLAY -> { if (!player.playWhenReady) toggleLivePause(); true }
+                    KeyEvent.KEYCODE_INFO -> { flashInfo(); true }
                     else -> false
                 }
             }
@@ -343,8 +361,14 @@ fun PlayerScreen(
         }
 
         if (isLive) {
-            AnimatedVisibility(showInfo && !showList, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.BottomCenter)) {
-                current?.let { LiveInfoBar(it, lineup, it.id in favorites) }
+            if (livePaused && status is PlayerStatus.Playing) Box(Modifier.align(Alignment.Center)) {
+                Icon(
+                    Icons.Filled.Pause, contentDescription = "Паузирано", tint = Color.White,
+                    modifier = Modifier.size(96.dp).clip(RoundedCornerShape(50)).background(Color(0x99000000)).padding(18.dp),
+                )
+            }
+            AnimatedVisibility((showInfo || livePaused) && !showList, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.BottomCenter)) {
+                current?.let { LiveInfoBar(it, lineup, it.id in favorites, livePaused) }
             }
             AnimatedVisibility(
                 showList,
@@ -392,7 +416,7 @@ private fun Centered(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun LiveInfoBar(channel: Channel, lineup: List<Channel>, favorite: Boolean) {
+private fun LiveInfoBar(channel: Channel, lineup: List<Channel>, favorite: Boolean, paused: Boolean) {
     val position = lineup.indexOfFirst { it.id == channel.id } + 1
     Row(
         Modifier.fillMaxWidth()
@@ -415,7 +439,7 @@ private fun LiveInfoBar(channel: Channel, lineup: List<Channel>, favorite: Boole
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Hint("▲ ▼", "Канал")
             Hint("◀", "Листа на канали")
-            Hint("OK", "Инфо")
+            Hint("OK", if (paused) "Продолжи" else "Пауза")
         }
     }
 }
