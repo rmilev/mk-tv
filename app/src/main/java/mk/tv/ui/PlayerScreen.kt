@@ -1,5 +1,7 @@
 package mk.tv.ui
 
+import android.net.ConnectivityManager
+import android.net.Network
 import android.view.KeyEvent
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -246,6 +248,22 @@ fun PlayerScreen(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Blocked or failed: retry by itself when the network changes (e.g. the VPN switcher just connected)
+    val blocked = status is PlayerStatus.GeoBlocked || status is PlayerStatus.Failed
+    if (blocked) DisposableEffect(Unit) {
+        val connectivity = context.getSystemService(ConnectivityManager::class.java)
+        var initial = true
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                // The first call only reports the network we already had
+                if (initial) { initial = false; return }
+                scope.launch { retried = false; load(fresh = true) }
+            }
+        }
+        runCatching { connectivity.registerDefaultNetworkCallback(callback) }
+        onDispose { runCatching { connectivity.unregisterNetworkCallback(callback) } }
     }
 
     DisposableEffect(player) {
