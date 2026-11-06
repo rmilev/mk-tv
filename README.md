@@ -94,6 +94,7 @@ Setup on the TV: install OpenVPN for Android, open VPN Switcher, and follow its 
 
 - **Recognition:** Shazam's song-matching service. The app makes the audio fingerprint itself with a Kotlin port of [SongRec](https://github.com/marin-m/SongRec)'s algorithm, the same approach the open-source [Audile](https://github.com/aleksey-saenko/MusicRecognizer) app uses. This isn't an official Shazam API, so it may stop working if Shazam changes it.
 - **Lyrics:** [LRCLIB](https://lrclib.net), a free, open database of time-synced lyrics.
+- **Artist photos:** Shazam's photo plus up to four widescreen photos from [TheAudioDB](https://www.theaudiodb.com), shown in turn every 40 seconds.
 - **Looks:** Stage (artist photo with lyrics beside it), Glass (a frosted panel) and Cinema (centred lyrics over a slowly drifting photo). Up and down switch; Groove remembers your choice.
 - **Remote:** OK re-checks right away. Left and right shift the lyrics 0.2 s later or earlier if they feel off; the app remembers the setting.
 
