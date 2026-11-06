@@ -79,27 +79,10 @@ Edit [`app/src/main/assets/channels.json`](app/src/main/assets/channels.json) an
 
 For a link that changes, use `"type": "page"` with a `"page"` URL and a `"pattern"` regex that matches the `.m3u8` link.
 
-## VPN Switcher (companion app)
+## Companion apps
 
-`vpnswitch/` is a separate small TV app that switches your VPN country per app: open МК ТВ and it connects to North Macedonia, open Stremio and it connects to the US, and so on. It drives [OpenVPN for Android](https://f-droid.org/packages/de.blinkt.openvpn/) through that app's remote-control API, using Private Internet Access's official OpenVPN profiles (every PIA region is built in). An accessibility service sees which app comes to the front (it never reads the screen) and connects that app's region, turns the VPN off, or leaves it as it is.
-
-Setup on the TV: install OpenVPN for Android, open VPN Switcher, and follow its five steps (allow control, allow VPN, PIA login, turn it on under Settings → Accessibility → Services). Then pick a region for each app on the right.
-
-## Groove — live lyrics (companion app)
-
-`lyrics/` is Groove, a TV app that listens to whatever is playing in the room (a record, a streaming app, anything) through the TV's built-in microphone. It shows the cover art and the lyrics in time with the music. It keeps listening the whole time it's on screen:
-- It re-checks every 5 seconds, so a skipped track, a seek or a new song shows within a few seconds.
-- A short break in the sound, like a skip or the groove between tracks on a record, or a sudden jump in loudness, brings the next check forward.
-- On a turntable running slightly fast or slow, it measures the speed and keeps the lyrics in step.
-
-- **Recognition:** Shazam's song-matching service. The app makes the audio fingerprint itself with a Kotlin port of [SongRec](https://github.com/marin-m/SongRec)'s algorithm, the same approach the open-source [Audile](https://github.com/aleksey-saenko/MusicRecognizer) app uses. This isn't an official Shazam API, so it may stop working if Shazam changes it.
-- **Lyrics:** [LRCLIB](https://lrclib.net), a free, open database of time-synced lyrics.
-- **Full credits:** when Shazam names only the main artist, [MusicBrainz](https://musicbrainz.org) fills in the rest ("Vince Staples feat. Kendrick Lamar & KUČKA").
-- **Artist photos:** Shazam's photo plus up to four widescreen photos from [TheAudioDB](https://www.theaudiodb.com), shown in a random order (new for every song) every 40 seconds.
-- **Looks:** Stage (artist photo with lyrics beside it), Glass (a frosted panel) and Cinema (centred lyrics over a slowly drifting photo). Up and down switch; Groove remembers your choice.
-- **Remote:** OK re-checks right away. Left and right shift the lyrics 0.2 s later or earlier if they feel off; the app remembers the setting.
-
-Only the fingerprint (a list of spectral peaks) leaves the TV, never the audio itself, and the microphone is only on while the app is on screen. The `lyrics/` module is GPL-3.0 (see `lyrics/LICENSE`) because its fingerprint code is derived from SongRec.
+- [VPN Switcher](https://github.com/rmilev/vpn-switcher): switches the VPN country per app, so МК ТВ gets North Macedonia automatically.
+- [Groove](https://github.com/rmilev/groove): live lyrics for whatever is playing in the room, heard through the TV's microphone.
 
 ## Build
 
