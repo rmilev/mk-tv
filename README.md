@@ -79,6 +79,12 @@ Edit [`app/src/main/assets/channels.json`](app/src/main/assets/channels.json) an
 
 For a link that changes, use `"type": "page"` with a `"page"` URL and a `"pattern"` regex that matches the `.m3u8` link.
 
+## VPN Switcher (companion app)
+
+`vpnswitch/` is a separate small TV app that switches your VPN country per app: open МК ТВ and it connects to North Macedonia, open Stremio and it connects to the US, and so on. It drives [OpenVPN for Android](https://f-droid.org/packages/de.blinkt.openvpn/) through that app's remote-control API, using Private Internet Access's official OpenVPN profiles (every PIA region is built in). An accessibility service sees which app comes to the front (it never reads the screen) and connects that app's region, turns the VPN off, or leaves it as it is.
+
+Setup on the TV: install OpenVPN for Android, open VPN Switcher, and follow its five steps (allow control, allow VPN, PIA login, turn it on under Settings → Accessibility → Services). Then pick a region for each app on the right.
+
 ## Build
 
 You need JDK 17 and the Android SDK (platform 35).

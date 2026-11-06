@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "mk-tv"
-include(":app")
+include(":app", ":vpnswitch")
