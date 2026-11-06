@@ -70,7 +70,8 @@ import mk.tv.data.YtVideo
 /**
  * Catch-up with one left column that drills down:
  *   level 1: sources (MRT sections, then stations; Albanian-language last). Focus previews the
- *            source's newest episodes; OK/▶ opens it.
+ *            source's newest episodes; OK opens the source's shows, ▶ opens them and goes to the
+ *            newest video in the list.
  *   level 2: that source's shows ("Најново" + shows/playlists) replace the column, under a
  *            "‹ <source>" header. Shows load on focus; ▶ goes to the episode list.
  * Back steps out one level at a time (list → shows → sources). Level, source, show, scroll and
@@ -145,6 +146,31 @@ fun ArchiveTab(
         columnJob?.cancel()
         runCatching { listFocus.requestFocus() }
     }
+    // The episode list the right side shows now (same keys as EpisodeList / VideoList use)
+    val listKey = when {
+        mrtSection != null -> "mrt-list:${selectedShow.toIntOrNull() ?: mrtSection}"
+        ytChannel != null -> "yt-list:${selectedShow.ifEmpty { null } ?: ytChannel.catchup!!.youtubeChannelId!!}"
+        else -> null
+    }
+    /**
+     * ▶ on a source: open it (its shows replace the menu, on "Најново", the list already showing)
+     * and go straight to the newest (first) video beside it.
+     */
+    fun openFirst() {
+        columnJob?.cancel()
+        val key = listKey ?: return
+        browse.select(source, latestKey)
+        browse.showArchiveLevel(2)
+        scope.launch {
+            runCatching { browse.listState(key).scrollToItem(0) }
+            // The menu is being swapped for the shows: keep asking until the list holds focus
+            repeat(8) {
+                delay(50)
+                if (listFocused) return@launch
+                runCatching { listFocus.requestFocus() }
+            }
+        }
+    }
     fun openSource() { browse.showArchiveLevel(2); focusColumnSoon() }
     fun closeSource() { browse.showArchiveLevel(1); focusColumnSoon() }
 
@@ -157,7 +183,7 @@ fun ArchiveTab(
     Row(Modifier.fillMaxSize().padding(top = Insets.Top + 8.dp)) {
         Box(Modifier.width(280.dp).fillMaxHeight()) {
             if (level == 1) {
-                SourcesLevel(youtubeChannels, browse, columnFocus, entryFocus, onOpen = ::openSource, youtubeApp, onYoutubeApp)
+                SourcesLevel(youtubeChannels, browse, columnFocus, entryFocus, onOpen = ::openSource, onRight = ::openFirst, youtubeApp, onYoutubeApp)
             } else {
                 ShowsLevel(
                     source = source,
@@ -200,7 +226,7 @@ fun ArchiveTab(
     }
 }
 
-/** Level 1: sources. Focus previews a source; OK or ▶ opens its shows. */
+/** Level 1: sources. Focus previews a source's newest videos; OK opens its shows, ▶ opens them and goes to the first video. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun SourcesLevel(
@@ -209,6 +235,7 @@ private fun SourcesLevel(
     selectedFocus: SafeFocus,
     entryFocus: SafeFocus,
     onOpen: () -> Unit,
+    onRight: () -> Unit,
     youtubeApp: Boolean,
     onYoutubeApp: (Boolean) -> Unit,
 ) {
@@ -226,7 +253,7 @@ private fun SourcesLevel(
             title, selected = selected,
             onFocus = { browse.selectSource(key) },
             onClick = onOpen,
-            onRight = onOpen,
+            onRight = onRight,
             trailing = "›",
             modifier = if (selected) selectedFocus.modifier().then(entryFocus.modifier()) else Modifier,
         )
