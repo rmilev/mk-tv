@@ -88,12 +88,13 @@ Setup on the TV: install OpenVPN for Android, open VPN Switcher, and follow its 
 ## Groove — live lyrics (companion app)
 
 `lyrics/` is Groove, a TV app that listens to whatever is playing in the room (a record, a streaming app, anything) through the TV's built-in microphone. It shows the cover art and the lyrics in time with the music. It keeps listening the whole time it's on screen:
-- It re-checks every 8 seconds, so a skipped track, a seek or a new song shows within a few seconds.
-- A short break in the sound, like a skip or the groove between tracks on a record, brings the next check forward.
+- It re-checks every 5 seconds, so a skipped track, a seek or a new song shows within a few seconds.
+- A short break in the sound, like a skip or the groove between tracks on a record, or a sudden jump in loudness, brings the next check forward.
 - On a turntable running slightly fast or slow, it measures the speed and keeps the lyrics in step.
 
 - **Recognition:** Shazam's song-matching service. The app makes the audio fingerprint itself with a Kotlin port of [SongRec](https://github.com/marin-m/SongRec)'s algorithm, the same approach the open-source [Audile](https://github.com/aleksey-saenko/MusicRecognizer) app uses. This isn't an official Shazam API, so it may stop working if Shazam changes it.
 - **Lyrics:** [LRCLIB](https://lrclib.net), a free, open database of time-synced lyrics.
+- **Full credits:** when Shazam names only the main artist, [MusicBrainz](https://musicbrainz.org) fills in the rest ("Vince Staples feat. Kendrick Lamar & KUČKA").
 - **Artist photos:** Shazam's photo plus up to four widescreen photos from [TheAudioDB](https://www.theaudiodb.com), shown in a random order (new for every song) every 40 seconds.
 - **Looks:** Stage (artist photo with lyrics beside it), Glass (a frosted panel) and Cinema (centred lyrics over a slowly drifting photo). Up and down switch; Groove remembers your choice.
 - **Remote:** OK re-checks right away. Left and right shift the lyrics 0.2 s later or earlier if they feel off; the app remembers the setting.
