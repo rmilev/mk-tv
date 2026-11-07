@@ -277,7 +277,7 @@ private fun SourcesLevel(
     }
 }
 
-/** Level 2: one source's shows under a "‹ source" header (OK on it, or Back, returns to sources). */
+/** Level 2: one source's shows under a "‹ source" header (OK on it, ◀ or Back returns to sources). */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ShowsLevel(
@@ -295,7 +295,12 @@ private fun ShowsLevel(
     val selectedIndex = items.indexOfFirst { it.first == selected }
     LaunchedEffect(source, selectedIndex) { scrollIntoView(state, selectedIndex + 2) }
     LazyColumn(
-        Modifier.fillMaxSize().focusProperties { enter = { selectedFocus.target } }.focusGroup(),
+        Modifier.fillMaxSize().focusProperties { enter = { selectedFocus.target } }.focusGroup()
+            // ◀ steps back out to the sources first; only from there does it reach the main menu (Live/Archive/Radio)
+            .onPreviewKeyEvent { ev ->
+                if (ev.key.nativeKeyCode != android.view.KeyEvent.KEYCODE_DPAD_LEFT) false
+                else { if (ev.type == KeyEventType.KeyDown) onBack(); true }
+            },
         state = state,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = 32.dp),

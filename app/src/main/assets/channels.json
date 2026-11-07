@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "channels": [
     {
       "id": "mrt1",
@@ -416,6 +416,19 @@
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCFFwtNtz1XH20tg8DW2-oJQ"
+      }
+    },
+    {
+      "id": "prva-tv",
+      "name": "Прва ТВ",
+      "nameLatin": "Prva TV",
+      "group": "Останати",
+      "logo": "https://yt3.googleusercontent.com/Zxr0phOproxv341BfPfAOIj4EbDJjK_XPHSiiMPeDlAbblxkl_GSkGN_PKpVMhnTgHxOd1afy_Q=s512",
+      "type": "none",
+      "live": false,
+      "catchup": {
+        "type": "youtube",
+        "youtubeChannelId": "UCTvimj_jYZeOX3USC8_folw"
       }
     },
     {

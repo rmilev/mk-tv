@@ -9,7 +9,7 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
 - **Live TV**: 24 channels in rows (МРТ, National, Albanian-language, Regional, Music…). A hero panel shows the focused channel.
 - **Catch-up, all inside the app**:
   - **MRT archive**: browse sections (News, Sport, MRT Production, Documentary, 50 Years of MRT, Promo), then shows, then episodes, with infinite scroll. The archive plays worldwide.
-  - **18 private stations from their official YouTube channels**: the latest videos plus the station's playlists as shows (e.g. Sitel → Тема на денот, Kanal 5 → Менуваме животи), with infinite scroll. They play in the app with YouTube's official embedded player and remote controls: OK pause, ◀/▶ seek 10 s, ▲/▼ previous or next video, and the next video starts automatically.
+  - **19 private stations from their official YouTube channels**: the latest videos plus the station's playlists as shows (e.g. Sitel → Тема на денот, Kanal 5 → Менуваме животи), with infinite scroll. They play in the app with YouTube's official embedded player and remote controls: OK pause, ◀/▶ seek 10 s, ▲/▼ previous or next video, and the next video starts automatically.
   - **YouTube Premium (optional)**: turn on **Без реклами** (no ads) in Архива to open videos in your signed-in YouTube app instead, ad-free with Premium. The YouTube TV app keeps its own history, so Back stays in YouTube; press Home and open МК ТВ to return. Off by default, so videos stay in МК ТВ.
 - **Radio**: MR 1, MR 2, MR 3, MR SAT.
 - **Built for the remote**: D-pad everywhere, a gold focus ring with zoom, a 10-foot layout with overscan-safe margins, and Macedonian labels.
@@ -49,6 +49,7 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
 | Канал 8, ТВ Нова 12, ТВ Здравкин | Regional | Worldwide | YouTube |
 | Folk TV, Love TV, Sky Folk, TopEstrada, Фолк Клуб | Music | Worldwide | YouTube (some) |
 | Cool TV, ИНТВ Австралија | Other | Worldwide | YouTube (INTV) |
+| Прва ТВ | Other | — (online only; occasional YouTube live shows) | YouTube |
 | Македонско радио 1 · 2 · 3 · САТ | Radio | Worldwide | — |
 
 The app covers **all 12 live channels on MRT Play** (MRT 1–5, MRT 1 SAT, MRT 2 SAT, the Assembly channel and 4 radio stations).
