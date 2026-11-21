@@ -34,7 +34,7 @@ A remote-friendly Android TV app for watching Macedonian television: every **MRT
    - **adb**: turn on developer mode and network debugging, then run `adb connect <tv-ip>` and `adb install mk-tv-<version>.apk`.
 3. МК ТВ appears in the TV's app row.
 
-**VPN:** MRT 1–5 only play from Macedonian IP addresses. Run a VPN app on the TV, set to **North Macedonia**, for those channels. Everything else plays worldwide.
+**VPN:** MRT 1–5 only play from Macedonian IP addresses. Run a VPN app on the TV, set to **North Macedonia**, for those channels. Everything else plays worldwide, and the YouTube catch-up plays better without a VPN: YouTube asks VPN users to "sign in to confirm you're not a bot", which the in-app player can't do. With [VPN Switcher](https://github.com/rmilev/vpn-switcher) installed, МК ТВ asks it for North Macedonia only while an МРТ 1–5 channel is open, and the VPN stays off otherwise.
 
 ## Channels
 
@@ -82,7 +82,7 @@ For a link that changes, use `"type": "page"` with a `"page"` URL and a `"patter
 
 ## Companion apps
 
-- [VPN Switcher](https://github.com/rmilev/vpn-switcher): switches the VPN country per app, so МК ТВ gets North Macedonia automatically.
+- [VPN Switcher](https://github.com/rmilev/vpn-switcher): switches the VPN country per app. МК ТВ gets North Macedonia automatically, only while МРТ 1–5 play.
 - [Groove](https://github.com/rmilev/groove): live lyrics for whatever is playing in the room, heard through the TV's microphone.
 
 ## Build

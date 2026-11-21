@@ -366,7 +366,12 @@ fun PlayerScreen(
             PlayerStatus.GeoBlocked -> Centered {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Filled.Lock, null, tint = Palette.Gold, modifier = Modifier.size(44.dp))
-                    Message(
+                    // VPN Switcher connects North Macedonia for МРТ 1–5 by itself; the channel retries when it's up
+                    val switcher = remember { runCatching { context.packageManager.getPackageInfo("mk.vpn", 0) }.isSuccess }
+                    if (switcher) Message(
+                        "Се поврзува VPN за Македонија…",
+                        "Каналот ќе тргне сам штом VPN-от се поврзе. OK за повторен обид.",
+                    ) else Message(
                         "Достапно само од Македонија",
                         "Вклучете VPN со локација North Macedonia, па притиснете OK за повторен обид.",
                     )

@@ -12,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -50,6 +51,9 @@ class MainActivity : ComponentActivity() {
                 val stack = remember { mutableStateListOf<Route>(Route.Home) }
 
                 BackHandler(enabled = stack.size > 1) { stack.removeAt(stack.lastIndex) }
+                // Out of the live player: МРТ 1–5 no longer need the VPN (archives and YouTube play better without it)
+                val onLive = stack.last() is Route.Live
+                LaunchedEffect(onLive) { if (!onLive) needVpn(false) }
 
                 Box(Modifier.fillMaxSize().background(Palette.Background)) {
                     when (val route = stack.last()) {
@@ -58,7 +62,7 @@ class MainActivity : ComponentActivity() {
                             favorites = favorites,
                             lastChannelId = vm.prefs.lastChannel,
                             browse = vm.browse,
-                            onPlayChannel = { stack.add(Route.Live(it.id)) },
+                            onPlayChannel = { if (it.mkOnly) needVpn(true); stack.add(Route.Live(it.id)) },
                             onToggleFavorite = { vm.toggleFavorite(it.id) },
                             onPlayEpisode = { episodes, i, show -> stack.add(Route.Episode(episodes, i, show)) },
                             onPlayYoutube = { videos, i, station ->
@@ -77,7 +81,7 @@ class MainActivity : ComponentActivity() {
                                     item = PlaybackItem.Live(start),
                                     lineup = lineup,
                                     favorites = favorites,
-                                    onChannelChanged = { vm.prefs.lastChannel = it.id },
+                                    onChannelChanged = { vm.prefs.lastChannel = it.id; if (it.mkOnly) needVpn(true) },
                                     onExit = { stack.removeAt(stack.lastIndex) },
                                 )
                             }
@@ -102,6 +106,42 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** True while an МРТ 1–5 channel (Macedonian IPs only) is open in the player. */
+    private var wantVpn = false
+
+    /**
+     * Tells VPN Switcher (if installed) whether we need its North Macedonia connection. It keeps the VPN off
+     * otherwise: the archives and YouTube work from anywhere, and YouTube asks VPN users to prove they aren't bots.
+     */
+    private fun needVpn(need: Boolean) {
+        if (need == wantVpn) return
+        wantVpn = need
+        tellVpnSwitcher(need)
+    }
+
+    private fun tellVpnSwitcher(need: Boolean) {
+        val intent = Intent("mk.vpn.action.NEED_VPN").setPackage("mk.vpn")
+            .putExtra("package", packageName)
+            .putExtra("need", need)
+        runCatching {
+            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                // Lets VPN Switcher see that the request really comes from МК ТВ
+                sendBroadcast(intent, null, android.app.BroadcastOptions.makeBasic().setShareIdentityEnabled(true).toBundle())
+            } else sendBroadcast(intent)
+        }
+    }
+
+    // Leaving the app releases the VPN (the next app gets its own); coming back to МРТ 1–5 asks again
+    override fun onStart() {
+        super.onStart()
+        if (wantVpn) tellVpnSwitcher(true)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (wantVpn) tellVpnSwitcher(false)
     }
 
     /**

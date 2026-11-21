@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "channels": [
     {
       "id": "mrt1",
@@ -206,18 +206,17 @@
       "nameLatin": "TV21",
       "group": "На албански",
       "logo": "https://i.imgur.com/IC1f4h3.png",
-      "type": "page",
-      "page": "https://tvmak.com/embed.aspx?id=TV21MK",
-      "pattern": "https://t\\d+\\.tvmak\\.com/tv/[^'\\\"\\s]+\\.m3u8[^'\\\"\\s]*",
+      "type": "url",
       "mkOnly": false,
       "catchup": {
         "type": "youtube",
         "youtubeChannelId": "UCv3j2ZAETAZj6Ey191Vrvow"
       },
       "headers": {
-        "Referer": "https://mk.tv21.tv/"
+        "Referer": "https://tvmak.com/"
       },
-      "albanian": true
+      "albanian": true,
+      "url": "https://t2.tvmak.com/tv/TV21MK.m3u8"
     },
     {
       "id": "tv-shenja",
